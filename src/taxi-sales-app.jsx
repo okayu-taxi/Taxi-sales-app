@@ -150,6 +150,33 @@ export default function TaxiSalesApp() {
   const deleteDay = useCallback((key) => { const nd = { ...pData.days }; delete nd[key]; updPeriod({ ...pData, days: nd }); }, [pData, updPeriod]);
   const saveClosing = useCallback(() => { const v = parseInt(closingInput); if (isNaN(v) || v < 0 || v > 28) return; setData(p => ({ ...p, settings: { ...p.settings, closingDay: v } })); setClosingInput(""); setEditingClosing(false); }, [closingInput]);
 
+  const exportData = useCallback(() => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `taxi-sales-backup-${new Date().toISOString().slice(0,10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [data]);
+
+  const importData = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target.result);
+        if (!parsed.settings || !parsed.periods) { alert("ファイルが正しくありません"); return; }
+        setData(migrateData(parsed));
+        alert("インポートしました");
+      } catch { alert("ファイルの読み込みに失敗しました"); }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  }, []);
+
   const toggleAtt = useCallback((y, m, d) => {
     const key = `${y}-${m}-${d}`;
     setData(p => {
@@ -447,9 +474,14 @@ export default function TaxiSalesApp() {
                 </div>
               </>
             )}
-            <div style={{ marginTop: 20, padding: "14px", background: "#f5f5f5", borderRadius: 10 }}>
-              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 6, fontWeight: 600 }}>💡 データについて</div>
-              <div style={{ fontSize: 12, color: "#aaa", lineHeight: 1.8 }}>データはこのデバイスに保存されます。毎日使う限りデータは消えません。</div>
+            <div style={{ marginTop: 20 }}>
+              <div style={{ ...lbl, marginBottom: 12 }}>バックアップ</div>
+              <button onClick={exportData} style={{ ...primaryBtn, width: "100%", padding: "13px", marginBottom: 10 }}>データをエクスポート（保存）</button>
+              <label style={{ display: "block", textAlign: "center", background: "transparent", border: "1.5px solid #e0e0e0", borderRadius: 8, color: "#888", fontSize: 14, fontWeight: 700, cursor: "pointer", padding: "13px" }}>
+                データをインポート（復元）
+                <input type="file" accept=".json" onChange={importData} style={{ display: "none" }} />
+              </label>
+              <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>PWAを再インストールする前にエクスポートしておくとデータが消えません。</div>
             </div>
           </div>
         )}
