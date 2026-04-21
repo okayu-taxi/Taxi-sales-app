@@ -251,7 +251,6 @@ export default function TaxiSalesApp() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={prevPeriod} style={navBtn}>‹</button>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 10, color: "#bbb", letterSpacing: 3, marginBottom: 3 }}>TAXI SALES</div>
             <div style={{ fontSize: closingDay === 0 ? 20 : 14, fontWeight: 700, color: "#111", lineHeight: 1.3 }}>{period.label}</div>
             <div style={{ fontSize: 11, color: "#ccc", marginTop: 2 }}>{closingLabel}</div>
           </div>
