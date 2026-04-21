@@ -500,7 +500,7 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
   const bg = s ? s.bg : "transparent";
   const textColor = s ? s.text : isToday ? "#111" : dow===0 ? "#e55" : dow===6 ? "#55a" : "#333";
   const border = isToday
-    ? (state === 'work' ? "2.5px solid #F6BE00" : state === 'paid_leave' ? "2.5px solid #999" : state === 'absent' ? "2.5px solid #fff" : "2.5px solid #111")
+    ? "2.5px solid #999"
     : "2px solid transparent";
   return (
     <button onClick={() => onToggle(calYear, calMonth, day)} style={{ border, borderRadius: 9, padding: "7px 2px", cursor: "pointer", background: bg, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
