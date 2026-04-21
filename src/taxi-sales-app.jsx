@@ -28,9 +28,25 @@ const WEEKDAYS = ["日","月","火","水","木","金","土"];
 const _now = new Date();
 const today = { year: _now.getFullYear(), month: _now.getMonth(), day: _now.getDate() };
 
+function getInitialPeriodMonth() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    const saved = s ? JSON.parse(s) : null;
+    const closingDay = saved?.settings?.closingDay ?? 0;
+    if (closingDay > 0 && today.day > closingDay) {
+      const m = (today.month + 1) % 12;
+      const y = today.month === 11 ? today.year + 1 : today.year;
+      return { year: y, month: m };
+    }
+  } catch {}
+  return { year: today.year, month: today.month };
+}
+
+const _initialPeriod = getInitialPeriodMonth();
+
 export default function TaxiSalesApp() {
-  const [curYear, setCurYear] = useState(today.year);
-  const [curMonth, setCurMonth] = useState(today.month);
+  const [curYear, setCurYear] = useState(_initialPeriod.year);
+  const [curMonth, setCurMonth] = useState(_initialPeriod.month);
   const [calYear, setCalYear] = useState(today.year);
   const [calMonth, setCalMonth] = useState(today.month);
   const [activeTab, setActiveTab] = useState("home");
