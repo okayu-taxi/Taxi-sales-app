@@ -499,7 +499,9 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
   const s = STATE_STYLE[state];
   const bg = s ? s.bg : "transparent";
   const textColor = s ? s.text : isToday ? "#111" : dow===0 ? "#e55" : dow===6 ? "#55a" : "#333";
-  const border = s ? "none" : isToday ? "2px solid #111" : "2px solid transparent";
+  const border = isToday
+    ? (state === 'work' ? "2.5px solid #F6BE00" : state === 'absent' ? "2.5px solid #fff" : "2.5px solid #111")
+    : "2px solid transparent";
   return (
     <button onClick={() => onToggle(calYear, calMonth, day)} style={{ border, borderRadius: 9, padding: "7px 2px", cursor: "pointer", background: bg, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
       <span style={{ fontSize: 14, lineHeight: 1, fontWeight: (state || isToday) ? 700 : 400, color: textColor }}>{day}</span>
