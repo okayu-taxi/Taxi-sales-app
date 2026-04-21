@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense, memo } from "react";
 
 const LazyChart = lazy(() => import("./SalesChart"));
 
@@ -227,12 +227,7 @@ export default function TaxiSalesApp() {
                 const isToday = calYear===today.year && calMonth===today.month && day===today.day;
                 const worked = isAtt(calYear, calMonth, day);
                 const dow = (calFirst + day - 1) % 7;
-                return (
-                  <button key={day} onClick={() => toggleAtt(calYear, calMonth, day)} style={{ border: worked ? "none" : isToday ? "2px solid #111" : "2px solid transparent", borderRadius: 9, padding: "7px 2px", cursor: "pointer", background: worked ? "#111" : "transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 2, transition: "all 0.12s" }}>
-                    <span style={{ fontSize: 14, lineHeight: 1, fontWeight: worked || isToday ? 700 : 400, color: worked ? "#fff" : isToday ? "#111" : dow===0?"#e55":dow===6?"#55a":"#333" }}>{day}</span>
-                    {worked && <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#555" }} />}
-                  </button>
-                );
+                return <CalDay key={day} day={day} isToday={isToday} worked={worked} dow={dow} calYear={calYear} calMonth={calMonth} onToggle={toggleAtt} />;
               })}
             </div>
             <div style={{ display: "flex", gap: 20, marginTop: 16, paddingTop: 14, borderTop: "1px solid #f0f0f0", justifyContent: "center" }}>
@@ -298,6 +293,13 @@ export default function TaxiSalesApp() {
     </div>
   );
 }
+
+const CalDay = memo(({ day, isToday, worked, dow, calYear, calMonth, onToggle }) => (
+  <button onClick={() => onToggle(calYear, calMonth, day)} style={{ border: worked ? "none" : isToday ? "2px solid #111" : "2px solid transparent", borderRadius: 9, padding: "7px 2px", cursor: "pointer", background: worked ? "#111" : "transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+    <span style={{ fontSize: 14, lineHeight: 1, fontWeight: worked || isToday ? 700 : 400, color: worked ? "#fff" : isToday ? "#111" : dow===0?"#e55":dow===6?"#55a":"#333" }}>{day}</span>
+    {worked && <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#555" }} />}
+  </button>
+));
 
 const card = { background: "#fff", border: "1px solid #ebebeb", borderRadius: 14, padding: "16px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.03)" };
 const lbl = { fontSize: 10, color: "#bbb", letterSpacing: 1.5, fontWeight: 700, textTransform: "uppercase" };
