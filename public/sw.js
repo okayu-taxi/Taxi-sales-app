@@ -1,4 +1,4 @@
-const CACHE_NAME = 'taxi-sales-v1';
+const CACHE_NAME = 'taxi-sales-v2';
 const URLS_TO_CACHE = ['/'];
 
 self.addEventListener('install', (event) => {
