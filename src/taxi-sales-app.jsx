@@ -25,28 +25,34 @@ function getDatesInPeriod(period) {
 
 const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
+function getNow() {
+  const n = new Date();
+  return { year: n.getFullYear(), month: n.getMonth(), day: n.getDate() };
+}
+
+function getCorrectPeriod(closingDay) {
+  const n = getNow();
+  if (closingDay > 0 && n.day > closingDay) {
+    const m = (n.month + 1) % 12;
+    const y = n.month === 11 ? n.year + 1 : n.year;
+    return { year: y, month: m };
+  }
+  return { year: n.year, month: n.month };
+}
+
+function readClosingDay() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    return (s ? JSON.parse(s) : null)?.settings?.closingDay ?? 0;
+  } catch { return 0; }
+}
+
 const _now = new Date();
 const today = { year: _now.getFullYear(), month: _now.getMonth(), day: _now.getDate() };
 
-function getInitialPeriodMonth() {
-  try {
-    const s = localStorage.getItem(STORAGE_KEY);
-    const saved = s ? JSON.parse(s) : null;
-    const closingDay = saved?.settings?.closingDay ?? 0;
-    if (closingDay > 0 && today.day > closingDay) {
-      const m = (today.month + 1) % 12;
-      const y = today.month === 11 ? today.year + 1 : today.year;
-      return { year: y, month: m };
-    }
-  } catch {}
-  return { year: today.year, month: today.month };
-}
-
-const _initialPeriod = getInitialPeriodMonth();
-
 export default function TaxiSalesApp() {
-  const [curYear, setCurYear] = useState(_initialPeriod.year);
-  const [curMonth, setCurMonth] = useState(_initialPeriod.month);
+  const [curYear, setCurYear] = useState(() => getCorrectPeriod(readClosingDay()).year);
+  const [curMonth, setCurMonth] = useState(() => getCorrectPeriod(readClosingDay()).month);
   const [calYear, setCalYear] = useState(today.year);
   const [calMonth, setCalMonth] = useState(today.month);
   const [activeTab, setActiveTab] = useState("home");
@@ -78,6 +84,18 @@ export default function TaxiSalesApp() {
   }, [pKey]);
 
   useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {} }, [data]);
+
+  // iOSのバックグラウンド復帰時に今日の期間へリセット
+  useEffect(() => {
+    const onPageShow = () => {
+      const cd = readClosingDay();
+      const { year, month } = getCorrectPeriod(cd);
+      setCurYear(year);
+      setCurMonth(month);
+    };
+    window.addEventListener('pageshow', onPageShow);
+    return () => window.removeEventListener('pageshow', onPageShow);
+  }, []);
 
   const updPeriod = useCallback((np) => setData(p => ({ ...p, periods: { ...p.periods, [pKey]: np } })), [pKey]);
   const saveDay = useCallback(() => { const a = parseInt(inputAmount.replace(/,/g, "")); if (!a || isNaN(a)) return; updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: a } }); setInputAmount(""); }, [inputAmount, inputDateKey, pData, updPeriod]);
