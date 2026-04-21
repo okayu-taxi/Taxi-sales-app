@@ -367,7 +367,7 @@ export default function TaxiSalesApp() {
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出勤</div></div>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#c8900a" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>欠勤</div></div>
-                {target61 && <div style={{ marginLeft: "auto", textAlign: "right" }}><div style={{ fontSize: 11, color: "#bbb" }}>61%目標営収</div><div style={{ fontSize: 14, fontWeight: 700 }}>¥{fmt(target61)}</div></div>}
+                {target61 && <div style={{ marginLeft: "auto", textAlign: "right" }}><div style={{ fontSize: 11, color: "#bbb" }}>61%目標営収（税込）</div><div style={{ fontSize: 14, fontWeight: 700 }}>¥{fmt(Math.round(target61 * 1.1))}</div></div>}
               </div>
             </div>
           )}
