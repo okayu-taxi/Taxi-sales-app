@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useState, useEffect, useMemo, useCallback, lazy, Suspense } from "react";
+
+const LazyChart = lazy(() => import("./SalesChart"));
 
 const STORAGE_KEY = "taxi_sales_data_v3";
 
@@ -21,18 +22,13 @@ function getDatesInPeriod(period) {
   }
   return dates;
 }
-function getDaysLeft(period, today) {
-  const dates = getDatesInPeriod(period);
-  const idx = dates.findIndex(d => d.year === today.year && d.month === today.month && d.day === today.day);
-  return { daysLeft: idx === -1 ? 0 : dates.length - idx, totalDays: dates.length };
-}
 
 const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
-export default function TaxiSalesApp() {
-  const now = new Date();
-  const today = { year: now.getFullYear(), month: now.getMonth(), day: now.getDate() };
+const _now = new Date();
+const today = { year: _now.getFullYear(), month: _now.getMonth(), day: _now.getDate() };
 
+export default function TaxiSalesApp() {
   const [curYear, setCurYear] = useState(today.year);
   const [curMonth, setCurMonth] = useState(today.month);
   const [calYear, setCalYear] = useState(today.year);
@@ -51,11 +47,13 @@ export default function TaxiSalesApp() {
   });
 
   const closingDay = data.settings?.closingDay ?? 0;
-  const period = getPeriod(curYear, curMonth, closingDay);
-  const pKey = `${period.startYear}-${period.startMonth}-${period.startDay}_${period.endYear}-${period.endMonth}-${period.endDay}`;
-  const pData = data.periods?.[pKey] || { goal: 0, days: {} };
-  const datesInPeriod = getDatesInPeriod(period);
+
+  const period = useMemo(() => getPeriod(curYear, curMonth, closingDay), [curYear, curMonth, closingDay]);
+  const pKey = useMemo(() => `${period.startYear}-${period.startMonth}-${period.startDay}_${period.endYear}-${period.endMonth}-${period.endDay}`, [period]);
+  const pData = useMemo(() => data.periods?.[pKey] || { goal: 0, days: {} }, [data.periods, pKey]);
   const attendance = data.attendance || {};
+
+  const datesInPeriod = useMemo(() => getDatesInPeriod(period), [pKey]);
 
   useEffect(() => {
     const tin = datesInPeriod.find(d => d.year === today.year && d.month === today.month && d.day === today.day);
@@ -65,44 +63,60 @@ export default function TaxiSalesApp() {
 
   useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {} }, [data]);
 
-  const updPeriod = (np) => setData(p => ({ ...p, periods: { ...p.periods, [pKey]: np } }));
-  const saveDay = () => { const a = parseInt(inputAmount.replace(/,/g, "")); if (!a || isNaN(a)) return; updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: a } }); setInputAmount(""); };
-  const saveGoal = () => { const g = parseInt(goalInput.replace(/,/g, "")); if (!g || isNaN(g)) return; updPeriod({ ...pData, goal: g }); setGoalInput(""); setEditingGoal(false); };
-  const deleteDay = (key) => { const nd = { ...pData.days }; delete nd[key]; updPeriod({ ...pData, days: nd }); };
-  const saveClosing = () => { const v = parseInt(closingInput); if (isNaN(v) || v < 0 || v > 28) return; setData(p => ({ ...p, settings: { ...p.settings, closingDay: v } })); setClosingInput(""); setEditingClosing(false); };
-  const toggleAtt = (y, m, d) => { const key = `${y}-${m}-${d}`; const na = { ...attendance }; if (na[key]) delete na[key]; else na[key] = true; setData(p => ({ ...p, attendance: na })); };
-  const isAtt = (y, m, d) => !!attendance[`${y}-${m}-${d}`];
+  const updPeriod = useCallback((np) => setData(p => ({ ...p, periods: { ...p.periods, [pKey]: np } })), [pKey]);
+  const saveDay = useCallback(() => { const a = parseInt(inputAmount.replace(/,/g, "")); if (!a || isNaN(a)) return; updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: a } }); setInputAmount(""); }, [inputAmount, inputDateKey, pData, updPeriod]);
+  const saveGoal = useCallback(() => { const g = parseInt(goalInput.replace(/,/g, "")); if (!g || isNaN(g)) return; updPeriod({ ...pData, goal: g }); setGoalInput(""); setEditingGoal(false); }, [goalInput, pData, updPeriod]);
+  const deleteDay = useCallback((key) => { const nd = { ...pData.days }; delete nd[key]; updPeriod({ ...pData, days: nd }); }, [pData, updPeriod]);
+  const saveClosing = useCallback(() => { const v = parseInt(closingInput); if (isNaN(v) || v < 0 || v > 28) return; setData(p => ({ ...p, settings: { ...p.settings, closingDay: v } })); setClosingInput(""); setEditingClosing(false); }, [closingInput]);
+  const toggleAtt = useCallback((y, m, d) => { const key = `${y}-${m}-${d}`; setData(p => { const na = { ...p.attendance }; if (na[key]) delete na[key]; else na[key] = true; return { ...p, attendance: na }; }); }, []);
+  const isAtt = useCallback((y, m, d) => !!attendance[`${y}-${m}-${d}`], [attendance]);
 
-  const total = Object.values(pData.days).reduce((a, b) => a + b, 0);
+  const total = useMemo(() => Object.values(pData.days).reduce((a, b) => a + b, 0), [pData.days]);
   const goal = pData.goal || 0;
   const remaining = Math.max(0, goal - total);
-  const { daysLeft, totalDays } = getDaysLeft(period, today);
-  const attLeft = datesInPeriod.filter(d => { const key = `${d.year}-${d.month}-${d.day}`; return attendance[key] && new Date(d.year, d.month, d.day) >= new Date(today.year, today.month, today.day); }).length;
+
+  const { daysLeft, totalDays } = useMemo(() => {
+    const dates = datesInPeriod;
+    const idx = dates.findIndex(d => d.year === today.year && d.month === today.month && d.day === today.day);
+    return { daysLeft: idx === -1 ? 0 : dates.length - idx, totalDays: dates.length };
+  }, [datesInPeriod]);
+
+  const attLeft = useMemo(() => datesInPeriod.filter(d => {
+    const key = `${d.year}-${d.month}-${d.day}`;
+    return attendance[key] && new Date(d.year, d.month, d.day) >= new Date(today.year, today.month, today.day);
+  }).length, [datesInPeriod, attendance]);
+
   const hasAtt = Object.keys(attendance).length > 0;
   const effLeft = hasAtt ? attLeft : daysLeft;
   const dailyNeeded = effLeft > 0 ? Math.ceil(remaining / effLeft) : 0;
   const pct = goal > 0 ? Math.min(100, Math.round((total / goal) * 100)) : 0;
 
-  let cum = 0;
-  const chartData = datesInPeriod.map((d, i) => {
-    cum += pData.days[`${d.year}-${d.month}-${d.day}`] || 0;
-    return { label: `${d.month + 1}/${d.day}`, 累計売上: cum, 目標ライン: goal > 0 ? Math.round((goal / totalDays) * (i + 1)) : null };
-  });
+  const chartData = useMemo(() => {
+    let cum = 0;
+    return datesInPeriod.map((d, i) => {
+      cum += pData.days[`${d.year}-${d.month}-${d.day}`] || 0;
+      return { label: `${d.month + 1}/${d.day}`, 累計売上: cum, 目標ライン: goal > 0 ? Math.round((goal / totalDays) * (i + 1)) : null };
+    });
+  }, [datesInPeriod, pData.days, goal, totalDays]);
 
-  const prevPeriod = () => { if (curMonth === 0) { setCurMonth(11); setCurYear(y => y - 1); } else setCurMonth(m => m - 1); };
-  const nextPeriod = () => { if (curMonth === 11) { setCurMonth(0); setCurYear(y => y + 1); } else setCurMonth(m => m + 1); };
-  const prevCal = () => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); };
-  const nextCal = () => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); };
+  const prevPeriod = useCallback(() => { if (curMonth === 0) { setCurMonth(11); setCurYear(y => y - 1); } else setCurMonth(m => m - 1); }, [curMonth]);
+  const nextPeriod = useCallback(() => { if (curMonth === 11) { setCurMonth(0); setCurYear(y => y + 1); } else setCurMonth(m => m + 1); }, [curMonth]);
+  const prevCal = useCallback(() => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }, [calMonth]);
+  const nextCal = useCallback(() => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }, [calMonth]);
 
   const fmt = (n) => n.toLocaleString("ja-JP");
-  const sortedKeys = Object.keys(pData.days).sort((a, b) => { const p = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m,d); }; return p(a)-p(b); });
+
+  const sortedKeys = useMemo(() => Object.keys(pData.days).sort((a, b) => { const p = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m,d); }; return p(a)-p(b); }), [pData.days]);
   const fmtKey = (k) => { const [,m,d] = k.split("-").map(Number); return `${m+1}月${d}日`; };
   const closingLabel = closingDay === 0 ? "末日締め" : `毎月${closingDay}日締め`;
 
-  const calDays = getDaysInMonth(calYear, calMonth);
-  const calFirst = getFirstDayOfWeek(calYear, calMonth);
-  const calCells = [...Array(calFirst).fill(null), ...Array.from({length: calDays}, (_, i) => i + 1)];
-  const calAttCount = Array.from({length: calDays}, (_, i) => i + 1).filter(d => isAtt(calYear, calMonth, d)).length;
+  const { calDays, calFirst, calCells, calAttCount } = useMemo(() => {
+    const calDays = getDaysInMonth(calYear, calMonth);
+    const calFirst = getFirstDayOfWeek(calYear, calMonth);
+    const calCells = [...Array(calFirst).fill(null), ...Array.from({length: calDays}, (_, i) => i + 1)];
+    const calAttCount = Array.from({length: calDays}, (_, i) => i + 1).filter(d => !!attendance[`${calYear}-${calMonth}-${d}`]).length;
+    return { calDays, calFirst, calCells, calAttCount };
+  }, [calYear, calMonth, attendance]);
 
   return (
     <div style={{ minHeight: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80 }}>
@@ -184,21 +198,10 @@ export default function TaxiSalesApp() {
             {Object.keys(pData.days).length === 0 ? (
               <div style={{ textAlign: "center", color: "#ccc", padding: "40px 0" }}>まだデータがありません</div>
             ) : (
-              <ResponsiveContainer width="100%" height={260}>
-                <LineChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="label" tick={{ fill: "#ccc", fontSize: 10 }} interval={Math.floor(totalDays/6)} stroke="#f0f0f0" />
-                  <YAxis tick={{ fill: "#ccc", fontSize: 10 }} stroke="#f0f0f0" tickFormatter={v => `${(v/10000).toFixed(0)}万`} />
-                  <Tooltip contentStyle={{ background: "#fff", border: "1px solid #ebebeb", borderRadius: 8, fontSize: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }} labelStyle={{ color: "#111" }} formatter={(v, n) => [`¥${fmt(v)}`, n]} />
-                  <Line type="monotone" dataKey="累計売上" stroke="#111" strokeWidth={2.5} dot={false} />
-                  {goal > 0 && <Line type="monotone" dataKey="目標ライン" stroke="#ccc" strokeWidth={1.5} strokeDasharray="5 5" dot={false} />}
-                </LineChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<div style={{ textAlign: "center", color: "#ccc", padding: "40px 0" }}>読み込み中…</div>}>
+                <LazyChart chartData={chartData} goal={goal} totalDays={totalDays} fmt={fmt} />
+              </Suspense>
             )}
-            <div style={{ display: "flex", gap: 16, marginTop: 12, justifyContent: "center" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#bbb" }}><div style={{ width: 20, height: 2, background: "#111" }} />累計売上</div>
-              {goal > 0 && <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: "#bbb" }}><div style={{ width: 20, height: 2, background: "#ccc" }} />目標ライン</div>}
-            </div>
           </div>
         )}
 
