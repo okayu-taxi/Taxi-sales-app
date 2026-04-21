@@ -272,8 +272,8 @@ export default function TaxiSalesApp() {
           <div style={card}>
             <div style={{ ...lbl, marginBottom: 12 }}>売上を入力</div>
             <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              <select value={inputDateKey} onChange={e => setInputDateKey(e.target.value)} style={{ ...inputStyle, width: 90, flex: "none" }}>
-                {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; return <option key={k} value={k}>{d.month+1}/{d.day}</option>; })}
+              <select value={inputDateKey} onChange={e => setInputDateKey(e.target.value)} style={{ ...inputStyle, width: 110, flex: "none" }}>
+                {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; return <option key={k} value={k}>{d.month+1}月{d.day}日</option>; })}
               </select>
               <input type="number" placeholder="金額（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={inputStyle} onKeyDown={e => e.key === "Enter" && saveDay()} />
             </div>
