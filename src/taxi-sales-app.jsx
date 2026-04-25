@@ -367,14 +367,14 @@ export default function TaxiSalesApp() {
                 <span style={{ fontSize: 10, color: "#3399ff", fontWeight: 700 }}>編集中</span>
               )}
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
-              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v != null ? String(v) : ""); }} style={{ ...inputStyle, width: 100, flex: "none", padding: "8px 8px", fontSize: 13 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v != null ? String(v) : ""); }} style={{ ...inputStyle, width: 92, flex: "none", padding: "8px", fontSize: 13, boxSizing: "border-box" }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; return <option key={k} value={k}>{d.month+1}月{d.day}日</option>; })}
               </select>
-              <input type="number" placeholder="金額（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
-              <button onClick={saveDay} style={{ ...primaryBtn, padding: "8px 14px" }}>{pData.days[inputDateKey] != null ? "更新" : "記録"}</button>
+              <input type="number" placeholder="金額（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
+              <button onClick={saveDay} style={{ ...primaryBtn, padding: "8px 14px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputDateKey] != null ? "更新" : "記録"}</button>
               {pData.days[inputDateKey] != null && (
-                <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); }} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8" }}>削除</button>
+                <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); }} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8", flex: "none", whiteSpace: "nowrap" }}>削除</button>
               )}
             </div>
           </div>
