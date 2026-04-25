@@ -4,28 +4,6 @@ import { getPat, setPat, getGistId, setGistId, validatePat, findExistingGist, cr
 const LazyChart = lazy(() => import("./SalesChart"));
 
 const STORAGE_KEY = "taxi_sales_data_v3";
-const BACKUP_KEY = "taxi_sales_backups_v1";
-const MAX_BACKUPS = 30;
-
-function pushBackup(data) {
-  try {
-    const raw = localStorage.getItem(BACKUP_KEY);
-    const arr = raw ? JSON.parse(raw) : [];
-    const last = arr[0];
-    const json = JSON.stringify(data);
-    if (last && last.json === json) return;
-    arr.unshift({ ts: Date.now(), json });
-    if (arr.length > MAX_BACKUPS) arr.length = MAX_BACKUPS;
-    localStorage.setItem(BACKUP_KEY, JSON.stringify(arr));
-  } catch {}
-}
-
-function readBackups() {
-  try {
-    const raw = localStorage.getItem(BACKUP_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch { return []; }
-}
 
 // 61%歩合達成に必要な営収テーブル（key: 出勤数_有給数）
 const TARGET_61 = {
@@ -160,12 +138,9 @@ export default function TaxiSalesApp() {
   }, [pKey]);
 
   const isFirstSaveRef = useRef(true);
-  const [backups, setBackups] = useState(() => readBackups());
   useEffect(() => {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
-    if (isFirstSaveRef.current) { isFirstSaveRef.current = false; return; }
-    pushBackup(data);
-    setBackups(readBackups());
+    if (isFirstSaveRef.current) { isFirstSaveRef.current = false; }
   }, [data]);
 
   // ── Gist sync ──
@@ -739,33 +714,6 @@ export default function TaxiSalesApp() {
             <div style={{ marginTop: 20 }}>
               <div style={{ ...lbl, marginBottom: 12 }}>クラウド同期 (GitHub Gist)</div>
               <GistSyncPanel pat={pat} gistId={gistId} status={syncStatus} setupSync={setupSync} disconnectSync={disconnectSync} manualSync={manualSync} />
-            </div>
-            <div style={{ marginTop: 20 }}>
-              <div style={{ ...lbl, marginBottom: 12 }}>自動バックアップ履歴</div>
-              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 10, lineHeight: 1.7 }}>入力するたびに最新{MAX_BACKUPS}件のスナップショットを自動保存。間違えて消した時はここから復元できます。</div>
-              {backups.length === 0 ? (
-                <div style={{ fontSize: 12, color: "#ccc", textAlign: "center", padding: "20px 0" }}>まだバックアップがありません</div>
-              ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 240, overflowY: "auto" }}>
-                  {backups.map((b, i) => {
-                    const d = new Date(b.ts);
-                    const w = WEEKDAYS[d.getDay()];
-                    const label = `${d.getMonth()+1}/${d.getDate()}(${w}) ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
-                    return (
-                      <div key={b.ts} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#fafafa", borderRadius: 8, border: "1px solid #f0f0f0" }}>
-                        <span style={{ fontSize: 12, color: "#666" }}>{label}{i === 0 && <span style={{ marginLeft: 6, fontSize: 10, color: "#3399ff", fontWeight: 700 }}>最新</span>}</span>
-                        <button onClick={() => {
-                          if (!confirm(`${label} の状態に戻しますか？\n現在のデータは上書きされます。`)) return;
-                          try {
-                            const restored = JSON.parse(b.json);
-                            setData(migrateData(restored));
-                          } catch { alert("復元に失敗しました"); }
-                        }} style={{ ...ghostBtn, padding: "4px 10px", fontSize: 11 }}>復元</button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
             <div style={{ marginTop: 20 }}>
               <div style={{ ...lbl, marginBottom: 12 }}>アプリ更新</div>
