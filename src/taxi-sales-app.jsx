@@ -55,9 +55,19 @@ function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDa
 function getFirstDayOfWeek(year, month) { return new Date(year, month, 1).getDay(); }
 function getPeriod(year, month, closingDay) {
   if (closingDay === 0) return { startYear: year, startMonth: month, startDay: 1, endYear: year, endMonth: month, endDay: getDaysInMonth(year, month), label: `${year}年${month + 1}月` };
+  const thisDays = getDaysInMonth(year, month);
+  const endDay = Math.min(closingDay, thisDays);
   let sm = month - 1, sy = year;
   if (sm < 0) { sm = 11; sy = year - 1; }
-  return { startYear: sy, startMonth: sm, startDay: closingDay + 1, endYear: year, endMonth: month, endDay: closingDay, label: `${sy}年${sm + 1}月${closingDay + 1}日〜${year}年${month + 1}月${closingDay}日` };
+  const prevDays = getDaysInMonth(sy, sm);
+  let startYear, startMonth, startDay;
+  if (closingDay >= prevDays) {
+    startYear = year; startMonth = month; startDay = 1;
+  } else {
+    startYear = sy; startMonth = sm; startDay = closingDay + 1;
+  }
+  const label = `${startYear}年${startMonth + 1}月${startDay}日〜${year}年${month + 1}月${endDay}日`;
+  return { startYear, startMonth, startDay, endYear: year, endMonth: month, endDay, label };
 }
 function getDatesInPeriod(period) {
   const dates = [];
@@ -75,8 +85,11 @@ const WEEKDAYS = ["日","月","火","水","木","金","土"];
 function getNow() { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth(), day: n.getDate() }; }
 function getCorrectPeriod(closingDay) {
   const n = getNow();
-  if (closingDay > 0 && n.day > closingDay) {
-    return { year: n.month === 11 ? n.year + 1 : n.year, month: (n.month + 1) % 12 };
+  if (closingDay > 0) {
+    const effective = Math.min(closingDay, getDaysInMonth(n.year, n.month));
+    if (n.day > effective) {
+      return { year: n.month === 11 ? n.year + 1 : n.year, month: (n.month + 1) % 12 };
+    }
   }
   return { year: n.year, month: n.month };
 }
@@ -358,7 +371,7 @@ export default function TaxiSalesApp() {
     updPeriod({ ...pData, days });
     setInputToll("");
   }, [inputTollDateKey, pData, updPeriod]);
-  const saveClosing = useCallback(() => { const v = parseInt(closingInput); if (isNaN(v) || v < 0 || v > 28) return; setData(p => ({ ...p, settings: { ...p.settings, closingDay: v } })); setClosingInput(""); setEditingClosing(false); }, [closingInput]);
+  const saveClosing = useCallback(() => { const v = parseInt(closingInput); if (isNaN(v) || v < 0 || v > 31) return; setData(p => ({ ...p, settings: { ...p.settings, closingDay: v } })); setClosingInput(""); setEditingClosing(false); }, [closingInput]);
 
   const saveCommission = useCallback((conf) => {
     setData(p => ({ ...p, settings: { ...p.settings, commission: { ...DEFAULT_COMMISSION, ...(p.settings?.commission || {}), ...conf } } }));
@@ -714,16 +727,16 @@ export default function TaxiSalesApp() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 10, color: "#999", fontWeight: 600 }}>締日設定</div>
                   <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{closingLabel}</div>
-                  {closingDay !== 0 && <div style={{ fontSize: 10, color: "#bbb", marginTop: 2 }}>前月{closingDay+1}日〜今月{closingDay}日</div>}
+                  {closingDay !== 0 && <div style={{ fontSize: 10, color: "#bbb", marginTop: 2 }}>{closingDay >= 29 ? `${closingDay}日（短い月は末日）が1期間の最終日` : `前月${closingDay+1}日〜今月${closingDay}日`}</div>}
                 </div>
                 <button onClick={() => setEditingClosing(true)} style={{ ...ghostBtn, padding: "8px 14px", flex: "none" }}>変更</button>
               </div>
             ) : (
               <>
                 <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 6 }}>締日設定</div>
-                <div style={{ fontSize: 11, color: "#999", marginBottom: 8, lineHeight: 1.6 }}>1〜28を入力（末日締めは「0」）</div>
+                <div style={{ fontSize: 11, color: "#999", marginBottom: 8, lineHeight: 1.6 }}>1〜31を入力（末日締めは「0」）</div>
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <input type="number" placeholder="例：20" min={0} max={28} value={closingInput} onChange={e => setClosingInput(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", minWidth: 0 }} onKeyDown={e => e.key === "Enter" && saveClosing()} />
+                  <input type="number" placeholder="例：20" min={0} max={31} value={closingInput} onChange={e => setClosingInput(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", minWidth: 0 }} onKeyDown={e => e.key === "Enter" && saveClosing()} />
                   <span style={{ color: "#999", fontSize: 13 }}>日</span>
                   <button onClick={saveClosing} style={{ ...primaryBtn, padding: "8px 14px", flex: "none" }}>保存</button>
                   <button onClick={() => { setEditingClosing(false); setClosingInput(""); }} style={{ ...ghostBtn, padding: "8px 12px", flex: "none" }}>×</button>
