@@ -622,6 +622,12 @@ export default function TaxiSalesApp() {
             <div style={{ ...lbl, marginBottom: 12 }}>足切り設定</div>
             <CommissionPanel commission={commission} saveCommission={saveCommission} />
           </div>
+
+          {/* 最高歩合のための出勤日数設定 */}
+          <div style={card}>
+            <div style={{ ...lbl, marginBottom: 12 }}>最高歩合の出勤条件</div>
+            <AttendanceTablePanel commission={commission} periodAtt={periodAtt} saveAttendanceTable={saveAttendanceTable} />
+          </div>
         </>}
 
         {activeTab === "calendar" && <> {/* 出番表 */}
@@ -669,12 +675,6 @@ export default function TaxiSalesApp() {
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 18, height: 18, background: "#e55", borderRadius: 5 }} />欠勤</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 18, height: 18, border: "2px solid #999", borderRadius: 5 }} />今日</div>
             </div>
-          </div>
-
-          {/* 出勤による歩合率調整 */}
-          <div style={card}>
-            <div style={{ ...lbl, marginBottom: 12 }}>歩合率の出勤調整</div>
-            <AttendanceTablePanel commission={commission} periodAtt={periodAtt} saveAttendanceTable={saveAttendanceTable} />
           </div>
         </>}
 
