@@ -7,18 +7,22 @@ const STORAGE_KEY = "taxi_sales_data_v3";
 
 const DEFAULT_COMMISSION = {
   tiers: [], // [{ threshold: number(税抜), rate: number(%)}]
-  attendanceAdjust: { paidPenalty: 0, absentPenalty: 0 },
+  attendanceTable: [], // [{ work, paid, absent, target }] — 一致した行があれば最高歩合の境界を target に置き換え
 };
 
 function applyAttendanceAdjust(tiers, periodAtt, conf) {
   const sorted = sortTiers(tiers);
   if (sorted.length === 0) return sorted;
-  const adj = conf?.attendanceAdjust || { paidPenalty: 0, absentPenalty: 0 };
-  const delta = (periodAtt?.paid || 0) * (adj.paidPenalty || 0) + (periodAtt?.absent || 0) * (adj.absentPenalty || 0);
-  if (!delta) return sorted;
+  const table = conf?.attendanceTable || [];
+  const match = table.find(e =>
+    (Number(e.work) || 0) === (periodAtt?.work || 0) &&
+    (Number(e.paid) || 0) === (periodAtt?.paid || 0) &&
+    (Number(e.absent) || 0) === (periodAtt?.absent || 0)
+  );
+  if (!match || !(Number(match.target) > 0)) return sorted;
   const out = [...sorted];
   const last = out[out.length - 1];
-  out[out.length - 1] = { ...last, threshold: (last.threshold || 0) + delta };
+  out[out.length - 1] = { ...last, threshold: Number(match.target) };
   return out;
 }
 
@@ -96,9 +100,9 @@ function migrateData(d) {
       if (old.midThreshold > 0 && old.midRate > 0) tiers.push({ threshold: Number(old.midThreshold), rate: Number(old.midRate) });
       if (old.customTarget > 0 && old.maxRate > 0) tiers.push({ threshold: Number(old.customTarget), rate: Number(old.maxRate) });
     }
-    d.settings.commission = { tiers, attendanceAdjust: { paidPenalty: 0, absentPenalty: 0 } };
-  } else if (!d.settings.commission.attendanceAdjust) {
-    d.settings.commission.attendanceAdjust = { paidPenalty: 0, absentPenalty: 0 };
+    d.settings.commission = { tiers, attendanceTable: [] };
+  } else if (!Array.isArray(d.settings.commission.attendanceTable)) {
+    d.settings.commission.attendanceTable = [];
   }
   if (d.attendance) {
     const mig = {};
@@ -362,8 +366,8 @@ export default function TaxiSalesApp() {
   const saveCommission = useCallback((conf) => {
     setData(p => ({ ...p, settings: { ...p.settings, commission: { ...DEFAULT_COMMISSION, ...(p.settings?.commission || {}), ...conf } } }));
   }, []);
-  const saveAttendanceAdjust = useCallback((adj) => {
-    setData(p => ({ ...p, settings: { ...p.settings, commission: { ...DEFAULT_COMMISSION, ...(p.settings?.commission || {}), attendanceAdjust: adj } } }));
+  const saveAttendanceTable = useCallback((table) => {
+    setData(p => ({ ...p, settings: { ...p.settings, commission: { ...DEFAULT_COMMISSION, ...(p.settings?.commission || {}), attendanceTable: table } } }));
   }, []);
 
   const toggleAtt = useCallback((y, m, d) => {
@@ -701,7 +705,7 @@ export default function TaxiSalesApp() {
           {/* 出勤による歩合率調整 */}
           <div style={card}>
             <div style={{ ...lbl, marginBottom: 12 }}>歩合率の出勤調整</div>
-            <AttendanceAdjustPanel commission={commission} periodAtt={periodAtt} saveAttendanceAdjust={saveAttendanceAdjust} />
+            <AttendanceTablePanel commission={commission} periodAtt={periodAtt} saveAttendanceTable={saveAttendanceTable} />
           </div>
         </>}
 
@@ -760,47 +764,61 @@ export default function TaxiSalesApp() {
   );
 }
 
-function AttendanceAdjustPanel({ commission, periodAtt, saveAttendanceAdjust }) {
-  const cur = commission?.attendanceAdjust || { paidPenalty: 0, absentPenalty: 0 };
-  const [paid, setPaid] = useState(String(cur.paidPenalty || 0));
-  const [absent, setAbsent] = useState(String(cur.absentPenalty || 0));
-  useEffect(() => {
-    setPaid(String(cur.paidPenalty || 0));
-    setAbsent(String(cur.absentPenalty || 0));
-  }, [cur.paidPenalty, cur.absentPenalty]);
-  const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
-  const dirty = num(paid) !== (cur.paidPenalty || 0) || num(absent) !== (cur.absentPenalty || 0);
-  const onSave = () => saveAttendanceAdjust({ paidPenalty: Math.round(num(paid)), absentPenalty: Math.round(num(absent)) });
+function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
   const baseTiers = sortTiers(commission?.tiers || []);
   const baseTop = baseTiers.length > 0 ? baseTiers[baseTiers.length - 1] : null;
+  const stored = Array.isArray(commission?.attendanceTable) ? commission.attendanceTable : [];
+  const [rows, setRows] = useState(stored);
+  useEffect(() => { setRows(Array.isArray(commission?.attendanceTable) ? commission.attendanceTable : []); }, [commission?.attendanceTable]);
+  const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+  const updateRow = (i, patch) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r));
+  const removeRow = (i) => setRows(prev => prev.filter((_, idx) => idx !== i));
+  const addRow = () => setRows(prev => [...prev, { work: periodAtt?.work || 0, paid: periodAtt?.paid || 0, absent: periodAtt?.absent || 0, target: 0 }]);
+  const onSave = () => {
+    const cleaned = rows.map(r => ({
+      work: Math.max(0, Math.round(num(r.work))),
+      paid: Math.max(0, Math.round(num(r.paid))),
+      absent: Math.max(0, Math.round(num(r.absent))),
+      target: Math.max(0, Math.round(num(r.target))),
+    }));
+    saveAttendanceTable(cleaned);
+  };
+  const dirty = JSON.stringify(rows) !== JSON.stringify(stored);
   if (!baseTop) {
     return <div style={{ fontSize: 12, color: "#ccc" }}>給料タブで歩合率を設定すると有効になります</div>;
   }
-  const liveDelta = (periodAtt.paid || 0) * num(paid) + (periodAtt.absent || 0) * num(absent);
-  const effective = (baseTop.threshold || 0) + liveDelta;
+  const matched = rows.find(r => Number(r.work) === (periodAtt?.work || 0) && Number(r.paid) === (periodAtt?.paid || 0) && Number(r.absent) === (periodAtt?.absent || 0));
   return (
     <>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        最高歩合（{baseTop.rate}%）の境界営収を、有休／欠勤1日あたり何円ずつ加算するかを設定します。
+        出勤数・有休数・欠勤数の組み合わせごとに、最高歩合（{baseTop.rate}%）の境界営収（税抜）を入力できます。今期の出勤状況と一致した行があれば、その値が自動で反映されます。
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
-        <div>
-          <div style={{ fontSize: 11, color: "#999", marginBottom: 4, fontWeight: 600 }}>有休 1日あたりの加算（円）</div>
-          <input type="number" value={paid} onChange={e => setPaid(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", width: "100%" }} />
+      {rows.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 32px", gap: 6, fontSize: 10, color: "#999", padding: "0 4px", marginBottom: 4 }}>
+          <div>出勤</div><div>有休</div><div>欠勤</div><div style={{ textAlign: "right" }}>営収（税抜・円）</div><div></div>
         </div>
-        <div>
-          <div style={{ fontSize: 11, color: "#999", marginBottom: 4, fontWeight: 600 }}>欠勤 1日あたりの加算（円）</div>
-          <input type="number" value={absent} onChange={e => setAbsent(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", width: "100%" }} />
-        </div>
+      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+        {rows.map((r, i) => (
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 32px", gap: 6, alignItems: "center" }}>
+            <input type="number" value={r.work} onChange={e => updateRow(i, { work: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
+            <input type="number" value={r.paid} onChange={e => updateRow(i, { paid: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
+            <input type="number" value={r.absent} onChange={e => updateRow(i, { absent: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
+            <input type="number" value={r.target} onChange={e => updateRow(i, { target: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
+            <button onClick={() => removeRow(i)} style={{ background: "transparent", border: "none", color: "#e55", fontSize: 18, cursor: "pointer", padding: 0 }}>✕</button>
+          </div>
+        ))}
       </div>
-      <div style={{ padding: "10px 12px", background: "#f5f5f5", borderRadius: 8, marginBottom: 10 }}>
-        <div style={{ fontSize: 10, color: "#999", marginBottom: 4 }}>今期の調整後 最高歩合の境界（税抜）</div>
-        <div style={{ fontSize: 14, fontWeight: 700 }}>¥{effective.toLocaleString()}</div>
-        <div style={{ fontSize: 10, color: "#bbb", marginTop: 2 }}>基準 ¥{(baseTop.threshold || 0).toLocaleString()} ＋ 有休{periodAtt.paid || 0}日 × ¥{num(paid).toLocaleString()} ＋ 欠勤{periodAtt.absent || 0}日 × ¥{num(absent).toLocaleString()}</div>
+      <button onClick={addRow} style={{ ...ghostBtn, width: "100%", padding: "10px", marginBottom: 10 }}>+ 行を追加</button>
+      <div style={{ padding: "10px 12px", background: matched ? "#FFF8E0" : "#f5f5f5", borderRadius: 8, marginBottom: 10, border: matched ? "1px solid #F6BE00" : "none" }}>
+        <div style={{ fontSize: 10, color: "#999", marginBottom: 4 }}>今期（出勤{periodAtt?.work || 0}日 / 有休{periodAtt?.paid || 0}日 / 欠勤{periodAtt?.absent || 0}日）</div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>
+          {matched ? `¥${Number(matched.target).toLocaleString()}（一致行を適用）` : `¥${(baseTop.threshold || 0).toLocaleString()}（一致行なし → 基準値）`}
+        </div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button onClick={onSave} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
-        <button onClick={() => { setPaid(String(cur.paidPenalty || 0)); setAbsent(String(cur.absentPenalty || 0)); }} disabled={!dirty} style={{ ...ghostBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>取消</button>
+        <button onClick={() => setRows(stored)} disabled={!dirty} style={{ ...ghostBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>取消</button>
       </div>
     </>
   );
