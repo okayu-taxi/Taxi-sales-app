@@ -147,36 +147,76 @@ export default function TaxiSalesApp() {
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
-  // Pull-to-refresh
-  const [pullY, setPullY] = useState(0);
-  const [refreshing, setRefreshing] = useState(false);
-  const pullStartY = useRef(null);
-  const pullCurY = useRef(0);
-  const REFRESH_THRESHOLD = 70;
+  // Pull-to-refresh (ref-driven, no React re-renders during drag)
+  const appRef = useRef(null);
+  const indicatorRef = useRef(null);
 
   useEffect(() => {
-    const onTouchStart = (e) => {
-      if (window.scrollY > 0 || refreshing) { pullStartY.current = null; return; }
-      pullStartY.current = e.touches[0].clientY;
-      pullCurY.current = 0;
-    };
-    const onTouchMove = (e) => {
-      if (pullStartY.current == null) return;
-      if (window.scrollY > 0) { pullStartY.current = null; setPullY(0); return; }
-      const dy = e.touches[0].clientY - pullStartY.current;
-      if (dy > 0) {
-        const damped = Math.min(140, dy * 0.5);
-        pullCurY.current = damped;
-        setPullY(damped);
+    const THRESHOLD = 70;
+    let startY = null;
+    let curY = 0;
+    let raf = null;
+    let refreshing = false;
+
+    const apply = () => {
+      raf = null;
+      const app = appRef.current;
+      const ind = indicatorRef.current;
+      if (app) app.style.transform = `translate3d(0, ${curY}px, 0)`;
+      if (ind) {
+        if (curY > 0 || refreshing) {
+          ind.style.display = "block";
+          ind.style.opacity = String(Math.min(1, curY / 50));
+          ind.style.transform = `translate3d(-50%, ${Math.min(curY - 30, 30)}px, 0)`;
+          ind.textContent = refreshing ? "更新中…" : curY > THRESHOLD ? "離して更新" : "下に引いて更新";
+        } else {
+          ind.style.display = "none";
+        }
       }
     };
-    const onTouchEnd = () => {
-      if (pullStartY.current == null) return;
-      pullStartY.current = null;
-      if (pullCurY.current > REFRESH_THRESHOLD) {
-        setRefreshing(true);
-        setPullY(60);
-        if ('serviceWorker' in navigator) {
+
+    const schedule = () => { if (raf == null) raf = requestAnimationFrame(apply); };
+
+    const reset = (animated) => {
+      curY = 0;
+      const app = appRef.current;
+      if (app) {
+        if (animated) {
+          app.style.transition = "transform 0.2s";
+          app.style.transform = "translate3d(0, 0, 0)";
+          setTimeout(() => { if (app) app.style.transition = ""; }, 220);
+        } else {
+          app.style.transform = "translate3d(0, 0, 0)";
+        }
+      }
+      const ind = indicatorRef.current;
+      if (ind) ind.style.display = "none";
+    };
+
+    const onStart = (e) => {
+      if (refreshing || window.scrollY > 0) { startY = null; return; }
+      startY = e.touches[0].clientY;
+      curY = 0;
+      const app = appRef.current;
+      if (app) app.style.transition = "";
+    };
+    const onMove = (e) => {
+      if (startY == null) return;
+      if (window.scrollY > 0) { startY = null; reset(false); return; }
+      const dy = e.touches[0].clientY - startY;
+      if (dy > 0) {
+        curY = Math.min(140, dy * 0.5);
+        schedule();
+      }
+    };
+    const onEnd = () => {
+      if (startY == null) return;
+      startY = null;
+      if (curY > THRESHOLD) {
+        refreshing = true;
+        curY = 60;
+        schedule();
+        if ("serviceWorker" in navigator) {
           navigator.serviceWorker.getRegistrations()
             .then(regs => Promise.all(regs.map(r => r.update())))
             .finally(() => window.location.reload());
@@ -184,20 +224,22 @@ export default function TaxiSalesApp() {
           window.location.reload();
         }
       } else {
-        setPullY(0);
+        reset(true);
       }
     };
-    document.addEventListener('touchstart', onTouchStart, { passive: true });
-    document.addEventListener('touchmove', onTouchMove, { passive: true });
-    document.addEventListener('touchend', onTouchEnd);
-    document.addEventListener('touchcancel', onTouchEnd);
+
+    document.addEventListener("touchstart", onStart, { passive: true });
+    document.addEventListener("touchmove", onMove, { passive: true });
+    document.addEventListener("touchend", onEnd, { passive: true });
+    document.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {
-      document.removeEventListener('touchstart', onTouchStart);
-      document.removeEventListener('touchmove', onTouchMove);
-      document.removeEventListener('touchend', onTouchEnd);
-      document.removeEventListener('touchcancel', onTouchEnd);
+      document.removeEventListener("touchstart", onStart);
+      document.removeEventListener("touchmove", onMove);
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+      if (raf) cancelAnimationFrame(raf);
     };
-  }, [refreshing]);
+  }, []);
 
   const updPeriod = useCallback((np) => setData(p => ({ ...p, periods: { ...p.periods, [pKey]: np } })), [pKey]);
   const saveDay = useCallback(() => { const a = parseInt(inputAmount.replace(/,/g, "")); if (!a || isNaN(a)) return; updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: a } }); setInputAmount(""); }, [inputAmount, inputDateKey, pData, updPeriod]);
@@ -333,13 +375,10 @@ export default function TaxiSalesApp() {
     return { calDays, calFirst, calCells, calWorkCount, calPaidCount };
   }, [calYear, calMonth, attendance]);
 
-  const willRefresh = pullY > REFRESH_THRESHOLD;
   return (
-    <div style={{ minHeight: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80, transform: `translateY(${pullY}px)`, transition: pullY === 0 || refreshing ? "transform 0.25s" : "none" }}>
+    <div ref={appRef} style={{ minHeight: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80, willChange: "transform" }}>
 
-      <div style={{ position: "fixed", top: 0, left: "50%", transform: `translateX(-50%) translateY(${Math.min(pullY - 30, 30)}px)`, opacity: Math.min(1, pullY / 50), pointerEvents: "none", zIndex: 100, padding: "8px 16px", background: "#fff", border: "1px solid #ebebeb", borderRadius: 99, boxShadow: "0 2px 8px rgba(0,0,0,0.08)", fontSize: 12, color: "#666", fontWeight: 600, display: pullY > 0 || refreshing ? "block" : "none" }}>
-        {refreshing ? "更新中…" : willRefresh ? "離して更新" : "下に引いて更新"}
-      </div>
+      <div ref={indicatorRef} style={{ position: "fixed", top: 0, left: "50%", transform: "translate3d(-50%, -30px, 0)", opacity: 0, pointerEvents: "none", zIndex: 100, padding: "8px 16px", background: "#fff", border: "1px solid #ebebeb", borderRadius: 99, boxShadow: "0 2px 8px rgba(0,0,0,0.08)", fontSize: 12, color: "#666", fontWeight: 600, display: "none", willChange: "transform, opacity" }} />
 
       <div style={{ background: "#fff", padding: "8px 16px 6px", borderBottom: "1px solid #ebebeb" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
