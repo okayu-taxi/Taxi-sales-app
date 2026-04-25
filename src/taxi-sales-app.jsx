@@ -497,7 +497,7 @@ export default function TaxiSalesApp() {
       </div>
 
       <div style={{ display: "flex", background: "#fff", borderBottom: "1px solid #ebebeb" }}>
-        {[["home","ホーム"],["calendar","出番表"],["graph","歩合率設定"],["settings","設定"]].map(([key, label]) => (
+        {[["home","ホーム"],["calendar","出番表"],["graph","歩合率設定"],["settings","システム設定"]].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key)} style={{ flex: 1, padding: "7px 0", border: "none", background: "none", color: activeTab === key ? "#111" : "#ccc", fontWeight: activeTab === key ? 700 : 400, fontSize: 11, cursor: "pointer", borderBottom: activeTab === key ? "2px solid #111" : "2px solid transparent", transition: "all 0.15s" }}>{label}</button>
         ))}
       </div>
