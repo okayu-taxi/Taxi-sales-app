@@ -89,6 +89,16 @@ function migrateData(d) {
     });
     d.attendance = mig;
   }
+  if (d.periods) {
+    Object.values(d.periods).forEach(p => {
+      if (!p?.days) return;
+      Object.keys(p.days).forEach(dk => {
+        const v = p.days[dk];
+        if (typeof v === "number") p.days[dk] = { sales: v, toll: 0 };
+        else if (v && typeof v === "object") p.days[dk] = { sales: v.sales || 0, toll: v.toll || 0 };
+      });
+    });
+  }
   return d;
 }
 
@@ -99,6 +109,7 @@ export default function TaxiSalesApp() {
   const [calMonth, setCalMonth] = useState(today.month);
   const [activeTab, setActiveTab] = useState("home");
   const [inputAmount, setInputAmount] = useState("");
+  const [inputToll, setInputToll] = useState("");
   const [inputDateKey, setInputDateKey] = useState("");
   const [goalInput, setGoalInput] = useState("");
   const [editingGoal, setEditingGoal] = useState(false);
@@ -357,7 +368,18 @@ export default function TaxiSalesApp() {
   }, []);
 
   const updPeriod = useCallback((np) => setData(p => ({ ...p, periods: { ...p.periods, [pKey]: np } })), [pKey]);
-  const saveDay = useCallback(() => { const a = parseInt(inputAmount.replace(/,/g, "")); if (!a || isNaN(a)) return; updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: a } }); setInputAmount(""); }, [inputAmount, inputDateKey, pData, updPeriod]);
+  const saveDay = useCallback(() => {
+    const sStr = inputAmount.replace(/,/g, "").trim();
+    const tStr = inputToll.replace(/,/g, "").trim();
+    const sales = sStr === "" ? null : parseInt(sStr);
+    const toll = tStr === "" ? null : parseInt(tStr);
+    if (sales === null && toll === null) return;
+    if ((sales !== null && isNaN(sales)) || (toll !== null && isNaN(toll))) return;
+    const cur = pData.days[inputDateKey] || { sales: 0, toll: 0 };
+    const next = { sales: sales !== null ? sales : (cur.sales || 0), toll: toll !== null ? toll : (cur.toll || 0) };
+    updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: next } });
+    setInputAmount(""); setInputToll("");
+  }, [inputAmount, inputToll, inputDateKey, pData, updPeriod]);
   const saveGoal = useCallback(() => { const g = parseInt(goalInput.replace(/,/g, "")); if (!g || isNaN(g)) return; updPeriod({ ...pData, goal: g }); setGoalInput(""); setEditingGoal(false); }, [goalInput, pData, updPeriod]);
   const autoSetGoal61 = useCallback(() => {
     if (!target61) return;
@@ -388,7 +410,8 @@ export default function TaxiSalesApp() {
 
   const getAttState = useCallback((y, m, d) => attendance[`${y}-${m}-${d}`] || null, [attendance]);
 
-  const total = useMemo(() => Object.values(pData.days).reduce((a, b) => a + b, 0), [pData.days]);
+  const total = useMemo(() => Object.values(pData.days).reduce((a, b) => a + (b?.sales || 0), 0), [pData.days]);
+  const tollTotal = useMemo(() => Object.values(pData.days).reduce((a, b) => a + (b?.toll || 0), 0), [pData.days]);
   const goal = pData.goal || 0;
   const remaining = Math.max(0, goal - total);
   const commissionRate = useMemo(() => getCommissionRate(total, target61), [total, target61]);
@@ -415,7 +438,7 @@ export default function TaxiSalesApp() {
       const key = `${d.year}-${d.month}-${d.day}`;
       const v = pData.days[key];
       const dow = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()];
-      return { label: `${d.day}(${dow})`, 売上: v ?? null, dateKey: key };
+      return { label: `${d.day}(${dow})`, 売上: v?.sales ?? null, dateKey: key };
     });
   }, [datesInPeriod, pData.days]);
 
@@ -433,7 +456,8 @@ export default function TaxiSalesApp() {
   const onChartPointClick = useCallback((dateKey) => {
     setInputDateKey(dateKey);
     const existing = pData.days[dateKey];
-    setInputAmount(existing != null ? String(existing) : "");
+    setInputAmount(existing?.sales != null ? String(existing.sales) : "");
+    setInputToll(existing?.toll ? String(existing.toll) : "");
     if (typeof window !== "undefined") {
       window.requestAnimationFrame(() => {
         const el = document.getElementById("sales-input-card");
@@ -532,6 +556,8 @@ export default function TaxiSalesApp() {
             <div style={statCard}>
               <div style={statTitle}>今日までの1日平均</div>
               <div style={statValue}>¥{fmt(avgSoFar)}</div>
+              <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>自腹高速 合計</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#e55" }}>¥{fmt(tollTotal)}</div>
             </div>
           </div>
 
@@ -554,14 +580,17 @@ export default function TaxiSalesApp() {
                 <span style={{ fontSize: 10, color: "#3399ff", fontWeight: 700 }}>編集中</span>
               )}
             </div>
-            <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v != null ? String(v) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 13, boxSizing: "border-box" }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "stretch", marginBottom: 6 }}>
+              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v?.sales != null ? String(v.sales) : ""); setInputToll(v?.toll ? String(v.toll) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 13, boxSizing: "border-box" }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; const w = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()]; return <option key={k} value={k}>{d.month+1}月{d.day}日({w})</option>; })}
               </select>
-              <input type="number" placeholder="金額（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
-              <button onClick={saveDay} style={{ ...primaryBtn, padding: "8px 14px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputDateKey] != null ? "更新" : "記録"}</button>
+              <input type="number" placeholder="売上（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+              <input type="number" placeholder="自腹高速（円）" value={inputToll} onChange={e => setInputToll(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
+              <button onClick={saveDay} style={{ ...primaryBtn, padding: "8px 16px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputDateKey] != null ? "更新" : "記録"}</button>
               {pData.days[inputDateKey] != null && (
-                <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); }} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8", flex: "none", whiteSpace: "nowrap" }}>削除</button>
+                <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); setInputToll(""); }} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8", flex: "none", whiteSpace: "nowrap" }}>削除</button>
               )}
             </div>
           </div>
