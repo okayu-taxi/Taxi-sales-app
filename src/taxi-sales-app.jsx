@@ -266,8 +266,6 @@ export default function TaxiSalesApp() {
   const nextCal = useCallback(() => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }, [calMonth]);
 
   const fmt = (n) => n.toLocaleString("ja-JP");
-  const sortedKeys = useMemo(() => Object.keys(pData.days).sort((a, b) => { const p = s => { const [y,m,d] = s.split("-").map(Number); return new Date(y,m,d); }; return p(a)-p(b); }), [pData.days]);
-  const fmtKey = (k) => { const [,m,d] = k.split("-").map(Number); return `${m+1}月${d}日`; };
   const closingLabel = closingDay === 0 ? "末日締め" : `毎月${closingDay}日締め`;
 
   const { calDays, calFirst, calCells, calWorkCount, calPaidCount } = useMemo(() => {
@@ -298,7 +296,7 @@ export default function TaxiSalesApp() {
       </div>
 
       <div style={{ display: "flex", background: "#fff", borderBottom: "1px solid #ebebeb" }}>
-        {[["home","ホーム"],["history","履歴"],["calendar","出番表"],["graph","給料"],["settings","設定"]].map(([key, label]) => (
+        {[["home","ホーム"],["calendar","出番表"],["graph","給料"],["settings","設定"]].map(([key, label]) => (
           <button key={key} onClick={() => setActiveTab(key)} style={{ flex: 1, padding: "7px 0", border: "none", background: "none", color: activeTab === key ? "#111" : "#ccc", fontWeight: activeTab === key ? 700 : 400, fontSize: 11, cursor: "pointer", borderBottom: activeTab === key ? "2px solid #111" : "2px solid transparent", transition: "all 0.15s" }}>{label}</button>
         ))}
       </div>
@@ -336,10 +334,6 @@ export default function TaxiSalesApp() {
               <div style={statTitle}>目標まで残り</div>
               <div style={statValue}>¥{fmt(remaining)}</div>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4 }}>
-                <span style={{ fontSize: 10, color: "#999" }}>残り出勤日数</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>{effLeft}日</span>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 2 }}>
                 <span style={{ fontSize: 10, color: "#999" }}>目標までの1日平均</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>¥{fmt(dailyNeeded)}</span>
               </div>
@@ -506,29 +500,6 @@ export default function TaxiSalesApp() {
             </div>
           </div>
         </>}
-
-        {activeTab === "history" && (
-          <div style={card}>
-            <div style={{ ...lbl, marginBottom: 12 }}>日別記録</div>
-            {sortedKeys.length === 0 ? (
-              <div style={{ textAlign: "center", color: "#ccc", padding: "40px 0" }}>まだデータがありません</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {sortedKeys.map(key => (
-                  <div key={key} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "11px 14px", background: "#fafafa", borderRadius: 9, border: "1px solid #f0f0f0" }}>
-                    <span style={{ fontSize: 14, color: "#999" }}>{fmtKey(key)}</span>
-                    <span style={{ fontSize: 16, fontWeight: 700 }}>¥{fmt(pData.days[key])}</span>
-                    <button onClick={() => deleteDay(key)} style={{ background: "none", border: "none", color: "#ddd", cursor: "pointer", fontSize: 16, padding: "0 4px" }}>✕</button>
-                  </div>
-                ))}
-                <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 14px", background: "#111", borderRadius: 9, marginTop: 4 }}>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: "#888" }}>合計</span>
-                  <span style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>¥{fmt(total)}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
 
         {activeTab === "settings" && (
           <div style={card}>
