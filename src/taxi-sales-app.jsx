@@ -798,17 +798,17 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
         出勤数・有休数・欠勤数の組み合わせごとに、最高歩合（{baseTop.rate}%）の足切り（税込）を入力できます。今期の出勤状況と一致した行があれば、その値が自動で反映されます。
       </div>
       {rows.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 32px", gap: 6, fontSize: 10, color: "#999", padding: "0 4px", marginBottom: 4 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 28px", gap: 4, fontSize: 10, color: "#999", padding: "0 4px", marginBottom: 4 }}>
           <div>出勤</div><div>有休</div><div>欠勤</div><div style={{ textAlign: "right" }}>足切り（税込・円）</div><div></div>
         </div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
         {rows.map((r, i) => (
-          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 32px", gap: 6, alignItems: "center" }}>
-            <input type="number" value={r.work} onChange={e => updateRow(i, { work: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
-            <input type="number" value={r.paid} onChange={e => updateRow(i, { paid: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
-            <input type="number" value={r.absent} onChange={e => updateRow(i, { absent: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
-            <input type="number" value={r.target} onChange={e => updateRow(i, { target: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
+          <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 28px", gap: 4, alignItems: "center" }}>
+            <input type="number" value={r.work} onChange={e => updateRow(i, { work: e.target.value })} style={{ ...inputStyle, padding: "8px 4px", boxSizing: "border-box", textAlign: "right", minWidth: 0, width: "100%" }} />
+            <input type="number" value={r.paid} onChange={e => updateRow(i, { paid: e.target.value })} style={{ ...inputStyle, padding: "8px 4px", boxSizing: "border-box", textAlign: "right", minWidth: 0, width: "100%" }} />
+            <input type="number" value={r.absent} onChange={e => updateRow(i, { absent: e.target.value })} style={{ ...inputStyle, padding: "8px 4px", boxSizing: "border-box", textAlign: "right", minWidth: 0, width: "100%" }} />
+            <input type="number" value={r.target} onChange={e => updateRow(i, { target: e.target.value })} style={{ ...inputStyle, padding: "8px 6px", boxSizing: "border-box", textAlign: "right", minWidth: 0, width: "100%" }} />
             <button onClick={() => removeRow(i)} style={{ background: "transparent", border: "none", color: "#e55", fontSize: 18, cursor: "pointer", padding: 0 }}>✕</button>
           </div>
         ))}
