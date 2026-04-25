@@ -134,6 +134,8 @@ export default function TaxiSalesApp() {
   const [closingInput, setClosingInput] = useState("");
   const [confirmingReset, setConfirmingReset] = useState(false);
   const swipeRef = useRef(null);
+  const [visitedTabs, setVisitedTabs] = useState(() => new Set(["home"]));
+  useEffect(() => { setVisitedTabs(prev => prev.has(activeTab) ? prev : new Set([...prev, activeTab])); }, [activeTab]);
 
   const [data, setData] = useState(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return migrateData(s ? JSON.parse(s) : null); }
@@ -516,7 +518,7 @@ export default function TaxiSalesApp() {
         }}
       >
 
-        {activeTab === "home" && <>
+        {visitedTabs.has("home") && <div style={{ display: activeTab === "home" ? "block" : "none" }}>
 
           {/* 2x2 統計グリッド */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -613,9 +615,9 @@ export default function TaxiSalesApp() {
               <span style={{ fontSize: 16, fontWeight: 800, color: "#e55" }}>¥{fmt(tollTotal)}</span>
             </div>
           </div>
-        </>}
+        </div>}
 
-        {activeTab === "graph" && <>
+        {visitedTabs.has("graph") && <div style={{ display: activeTab === "graph" ? "block" : "none" }}>
           {/* 給料推定カード */}
           <div style={card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -656,9 +658,9 @@ export default function TaxiSalesApp() {
             <div style={{ ...lbl, marginBottom: 12 }}>最高歩合の出勤条件</div>
             <AttendanceTablePanel commission={commission} periodAtt={periodAtt} saveAttendanceTable={saveAttendanceTable} />
           </div>
-        </>}
+        </div>}
 
-        {activeTab === "calendar" && <> {/* 出番表 */}
+        {visitedTabs.has("calendar") && <div style={{ display: activeTab === "calendar" ? "block" : "none" }}> {/* 出番表 */}
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: "#aaa", lineHeight: 1.8 }}>
               タップするたびに切り替わります：<br />
@@ -704,10 +706,10 @@ export default function TaxiSalesApp() {
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 18, height: 18, border: "2px solid #999", borderRadius: 5 }} />今日</div>
             </div>
           </div>
-        </>}
+        </div>}
 
-        {activeTab === "settings" && (
-          <>
+        {visitedTabs.has("settings") && (
+          <div style={{ display: activeTab === "settings" ? "block" : "none" }}>
             <div style={card}>
               <div style={{ ...lbl, marginBottom: 16 }}>締日設定</div>
               <div style={{ padding: "14px", background: "#f5f5f5", borderRadius: 10, marginBottom: 16 }}>
@@ -777,7 +779,7 @@ export default function TaxiSalesApp() {
                 </>
               )}
             </div>
-          </>
+          </div>
         )}
       </div>
     </div>
