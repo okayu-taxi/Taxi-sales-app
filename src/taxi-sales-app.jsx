@@ -213,9 +213,9 @@ export default function TaxiSalesApp() {
   const estimatedSalary = useMemo(() => estimateSalary(total, target61), [total, target61]);
   const rate50 = useMemo(() => calc50Threshold(target61), [target61]);
 
-  const { daysLeft, totalDays } = useMemo(() => {
+  const { daysLeft, totalDays, todayIndex } = useMemo(() => {
     const idx = datesInPeriod.findIndex(d => d.year === today.year && d.month === today.month && d.day === today.day);
-    return { daysLeft: idx === -1 ? 0 : datesInPeriod.length - idx, totalDays: datesInPeriod.length };
+    return { daysLeft: idx === -1 ? 0 : datesInPeriod.length - idx, totalDays: datesInPeriod.length, todayIndex: idx };
   }, [datesInPeriod]);
 
   const attLeft = useMemo(() => datesInPeriod.filter(d => {
@@ -347,7 +347,6 @@ export default function TaxiSalesApp() {
             <div style={statCard}>
               <div style={statTitle}>現在の総営収</div>
               <div style={statValue}>¥{fmt(total)}</div>
-              <div style={statSub}>現在 {hasAtt ? workedDaysSoFar : recordedDaysCount}日出勤</div>
             </div>
             <div style={statCard}>
               <div style={statTitle}>今日までの1日平均</div>
@@ -362,7 +361,7 @@ export default function TaxiSalesApp() {
               <span style={{ fontSize: 10, color: "#bbb" }}>日付タップで編集</span>
             </div>
             <Suspense fallback={<div style={{ height: 170, display: "flex", alignItems: "center", justifyContent: "center", color: "#ccc", fontSize: 12 }}>グラフを読み込み中…</div>}>
-              <LazyChart chartData={chartData} totalDays={totalDays} fmt={fmt} onPointClick={onChartPointClick} />
+              <LazyChart chartData={chartData} totalDays={totalDays} fmt={fmt} onPointClick={onChartPointClick} todayIndex={todayIndex} />
             </Suspense>
           </div>
 
