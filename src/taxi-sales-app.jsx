@@ -311,7 +311,7 @@ export default function TaxiSalesApp() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
             <div style={statCard}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={statTitle}>締日までの目標</span>
+                <span style={statTitle}>今月の目標</span>
                 <button onClick={() => { setEditingGoal(!editingGoal); setGoalInput(""); }} style={miniBtn}>{editingGoal ? "×" : "編集"}</button>
               </div>
               {editingGoal ? (
@@ -333,19 +333,25 @@ export default function TaxiSalesApp() {
               )}
             </div>
             <div style={statCard}>
-              <div style={statTitle}>{hasAtt ? "残り出勤" : "締日まで"}</div>
-              <div style={statValue}>{effLeft}<span style={statUnit}>日</span></div>
-              <div style={statSub}>残り ¥{fmt(remaining)}</div>
+              <div style={statTitle}>目標まで残り</div>
+              <div style={statValue}>¥{fmt(remaining)}</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 4 }}>
+                <span style={{ fontSize: 10, color: "#999" }}>残り出勤日数</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>{effLeft}日</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginTop: 2 }}>
+                <span style={{ fontSize: 10, color: "#999" }}>目標までの1日平均</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#333" }}>¥{fmt(dailyNeeded)}</span>
+              </div>
             </div>
             <div style={statCard}>
-              <div style={statTitle}>出勤 {hasAtt ? workedDaysSoFar : recordedDaysCount}日</div>
+              <div style={statTitle}>現在の総営収</div>
               <div style={statValue}>¥{fmt(total)}</div>
-              <div style={statSub}>現在の総営収</div>
+              <div style={statSub}>現在 {hasAtt ? workedDaysSoFar : recordedDaysCount}日出勤</div>
             </div>
             <div style={statCard}>
-              <div style={statTitle}>1日平均</div>
+              <div style={statTitle}>今日までの1日平均</div>
               <div style={statValue}>¥{fmt(avgSoFar)}</div>
-              <div style={statSub}>必要 ¥{fmt(dailyNeeded)}/日</div>
             </div>
           </div>
 
