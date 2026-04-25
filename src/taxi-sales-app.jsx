@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, lazy, Suspense, memo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo } from "react";
 
 const LazyChart = lazy(() => import("./SalesChart"));
 
@@ -147,6 +147,58 @@ export default function TaxiSalesApp() {
     return () => window.removeEventListener('pageshow', onPageShow);
   }, []);
 
+  // Pull-to-refresh
+  const [pullY, setPullY] = useState(0);
+  const [refreshing, setRefreshing] = useState(false);
+  const pullStartY = useRef(null);
+  const pullCurY = useRef(0);
+  const REFRESH_THRESHOLD = 70;
+
+  useEffect(() => {
+    const onTouchStart = (e) => {
+      if (window.scrollY > 0 || refreshing) { pullStartY.current = null; return; }
+      pullStartY.current = e.touches[0].clientY;
+      pullCurY.current = 0;
+    };
+    const onTouchMove = (e) => {
+      if (pullStartY.current == null) return;
+      if (window.scrollY > 0) { pullStartY.current = null; setPullY(0); return; }
+      const dy = e.touches[0].clientY - pullStartY.current;
+      if (dy > 0) {
+        const damped = Math.min(140, dy * 0.5);
+        pullCurY.current = damped;
+        setPullY(damped);
+      }
+    };
+    const onTouchEnd = () => {
+      if (pullStartY.current == null) return;
+      pullStartY.current = null;
+      if (pullCurY.current > REFRESH_THRESHOLD) {
+        setRefreshing(true);
+        setPullY(60);
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations()
+            .then(regs => Promise.all(regs.map(r => r.update())))
+            .finally(() => window.location.reload());
+        } else {
+          window.location.reload();
+        }
+      } else {
+        setPullY(0);
+      }
+    };
+    document.addEventListener('touchstart', onTouchStart, { passive: true });
+    document.addEventListener('touchmove', onTouchMove, { passive: true });
+    document.addEventListener('touchend', onTouchEnd);
+    document.addEventListener('touchcancel', onTouchEnd);
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart);
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+      document.removeEventListener('touchcancel', onTouchEnd);
+    };
+  }, [refreshing]);
+
   const updPeriod = useCallback((np) => setData(p => ({ ...p, periods: { ...p.periods, [pKey]: np } })), [pKey]);
   const saveDay = useCallback(() => { const a = parseInt(inputAmount.replace(/,/g, "")); if (!a || isNaN(a)) return; updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: a } }); setInputAmount(""); }, [inputAmount, inputDateKey, pData, updPeriod]);
   const saveGoal = useCallback(() => { const g = parseInt(goalInput.replace(/,/g, "")); if (!g || isNaN(g)) return; updPeriod({ ...pData, goal: g }); setGoalInput(""); setEditingGoal(false); }, [goalInput, pData, updPeriod]);
@@ -281,8 +333,13 @@ export default function TaxiSalesApp() {
     return { calDays, calFirst, calCells, calWorkCount, calPaidCount };
   }, [calYear, calMonth, attendance]);
 
+  const willRefresh = pullY > REFRESH_THRESHOLD;
   return (
-    <div style={{ minHeight: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80 }}>
+    <div style={{ minHeight: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80, transform: `translateY(${pullY}px)`, transition: pullY === 0 || refreshing ? "transform 0.25s" : "none" }}>
+
+      <div style={{ position: "fixed", top: 0, left: "50%", transform: `translateX(-50%) translateY(${Math.min(pullY - 30, 30)}px)`, opacity: Math.min(1, pullY / 50), pointerEvents: "none", zIndex: 100, padding: "8px 16px", background: "#fff", border: "1px solid #ebebeb", borderRadius: 99, boxShadow: "0 2px 8px rgba(0,0,0,0.08)", fontSize: 12, color: "#666", fontWeight: 600, display: pullY > 0 || refreshing ? "block" : "none" }}>
+        {refreshing ? "更新中…" : willRefresh ? "離して更新" : "下に引いて更新"}
+      </div>
 
       <div style={{ background: "#fff", padding: "8px 16px 6px", borderBottom: "1px solid #ebebeb" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
