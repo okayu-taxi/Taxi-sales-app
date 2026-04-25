@@ -708,25 +708,25 @@ export default function TaxiSalesApp() {
           </div>
 
           {/* 締日設定 */}
-          <div style={card}>
-            <div style={{ ...lbl, marginBottom: 16 }}>締日設定</div>
-            <div style={{ padding: "14px", background: "#f5f5f5", borderRadius: 10, marginBottom: 16 }}>
-              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4 }}>現在の設定</div>
-              <div style={{ fontSize: 22, fontWeight: 700 }}>{closingLabel}</div>
-              {closingDay !== 0 && <div style={{ fontSize: 12, color: "#bbb", marginTop: 6 }}>前月{closingDay+1}日〜今月{closingDay}日が1期間</div>}
-            </div>
+          <div style={{ ...card, padding: "10px 14px" }}>
             {!editingClosing ? (
-              <button onClick={() => setEditingClosing(true)} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>締日を変更する</button>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, color: "#999", fontWeight: 600 }}>締日設定</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{closingLabel}</div>
+                  {closingDay !== 0 && <div style={{ fontSize: 10, color: "#bbb", marginTop: 2 }}>前月{closingDay+1}日〜今月{closingDay}日</div>}
+                </div>
+                <button onClick={() => setEditingClosing(true)} style={{ ...ghostBtn, padding: "8px 14px", flex: "none" }}>変更</button>
+              </div>
             ) : (
               <>
-                <div style={{ fontSize: 12, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>締日を入力（1〜28）<br /><span style={{ color: "#ccc" }}>末日締めは「0」を入力</span></div>
-                <div style={{ display: "flex", gap: 8, marginBottom: 10, alignItems: "center" }}>
-                  <input type="number" placeholder="例：20" min={0} max={28} value={closingInput} onChange={e => setClosingInput(e.target.value)} style={inputStyle} onKeyDown={e => e.key === "Enter" && saveClosing()} />
-                  <span style={{ color: "#999", fontSize: 14 }}>日</span>
-                </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <button onClick={saveClosing} style={{ ...primaryBtn, flex: 1, padding: "13px" }}>保存</button>
-                  <button onClick={() => { setEditingClosing(false); setClosingInput(""); }} style={{ ...ghostBtn, flex: 1, padding: "13px" }}>キャンセル</button>
+                <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 6 }}>締日設定</div>
+                <div style={{ fontSize: 11, color: "#999", marginBottom: 8, lineHeight: 1.6 }}>1〜28を入力（末日締めは「0」）</div>
+                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input type="number" placeholder="例：20" min={0} max={28} value={closingInput} onChange={e => setClosingInput(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", minWidth: 0 }} onKeyDown={e => e.key === "Enter" && saveClosing()} />
+                  <span style={{ color: "#999", fontSize: 13 }}>日</span>
+                  <button onClick={saveClosing} style={{ ...primaryBtn, padding: "8px 14px", flex: "none" }}>保存</button>
+                  <button onClick={() => { setEditingClosing(false); setClosingInput(""); }} style={{ ...ghostBtn, padding: "8px 12px", flex: "none" }}>×</button>
                 </div>
               </>
             )}
