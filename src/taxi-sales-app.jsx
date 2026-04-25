@@ -381,8 +381,9 @@ export default function TaxiSalesApp() {
     if (tStr === "") return;
     const t = parseInt(tStr);
     if (isNaN(t) || t < 0) return;
-    const cur = pData.days[inputDateKey] || { sales: 0, toll: 0 };
-    updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: { ...cur, toll: t } } });
+    const cur = pData.days[inputDateKey];
+    const next = cur ? { ...cur, toll: t } : { toll: t };
+    updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: next } });
     setInputToll("");
   }, [inputToll, inputDateKey, pData, updPeriod]);
   const saveGoal = useCallback(() => { const g = parseInt(goalInput.replace(/,/g, "")); if (!g || isNaN(g)) return; updPeriod({ ...pData, goal: g }); setGoalInput(""); setEditingGoal(false); }, [goalInput, pData, updPeriod]);
@@ -442,12 +443,13 @@ export default function TaxiSalesApp() {
     return datesInPeriod.map(d => {
       const key = `${d.year}-${d.month}-${d.day}`;
       const v = pData.days[key];
+      const sales = v?.sales;
       const dow = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()];
-      return { label: `${d.day}(${dow})`, 売上: v?.sales ?? null, dateKey: key };
+      return { label: `${d.day}(${dow})`, 売上: sales && sales > 0 ? sales : null, dateKey: key };
     });
   }, [datesInPeriod, pData.days]);
 
-  const recordedDaysCount = useMemo(() => Object.keys(pData.days).length, [pData.days]);
+  const recordedDaysCount = useMemo(() => Object.values(pData.days).filter(v => v?.sales > 0).length, [pData.days]);
   const avgSoFar = recordedDaysCount > 0 ? Math.round(total / recordedDaysCount) : 0;
 
   const workedDaysSoFar = useMemo(() => {
