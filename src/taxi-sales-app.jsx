@@ -568,7 +568,7 @@ export default function TaxiSalesApp() {
               </div>
               {editingGoal ? (
                 <>
-                  <input type="number" placeholder="目標額" value={goalInput} onChange={e => setGoalInput(e.target.value)} style={{ ...inputStyle, fontSize: 13, padding: "6px 8px", marginTop: 4 }} onKeyDown={e => e.key === "Enter" && saveGoal()} />
+                  <input type="number" placeholder="目標額" value={goalInput} onChange={e => setGoalInput(e.target.value)} style={{ ...inputStyle, fontSize: 16, padding: "6px 8px", marginTop: 4 }} onKeyDown={e => e.key === "Enter" && saveGoal()} />
                   <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
                     <button onClick={saveGoal} style={{ ...primaryBtn, flex: 1, padding: "5px", fontSize: 12 }}>保存</button>
                     {target61 && <button onClick={autoSetGoal61} style={{ ...ghostBtn, flex: 1, padding: "5px", fontSize: 11, color: "#c8900a", borderColor: "#F6BE00" }}>61%自動</button>}
@@ -620,7 +620,7 @@ export default function TaxiSalesApp() {
               )}
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v?.sales != null ? String(v.sales) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 13, boxSizing: "border-box" }}>
+              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v?.sales != null ? String(v.sales) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 16, boxSizing: "border-box" }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; const w = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()]; return <option key={k} value={k}>{d.month+1}月{d.day}日({w})</option>; })}
               </select>
               <input type="number" placeholder="売上（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveSales()} />
@@ -640,7 +640,7 @@ export default function TaxiSalesApp() {
               ) : null}
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "stretch", marginBottom: 8 }}>
-              <select value={inputTollDateKey} onChange={e => { setInputTollDateKey(e.target.value); const v = pData.days[e.target.value]; setInputToll(v?.toll ? String(v.toll) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 13, boxSizing: "border-box" }}>
+              <select value={inputTollDateKey} onChange={e => { setInputTollDateKey(e.target.value); const v = pData.days[e.target.value]; setInputToll(v?.toll ? String(v.toll) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 16, boxSizing: "border-box" }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; const w = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()]; return <option key={k} value={k}>{d.month+1}月{d.day}日({w})</option>; })}
               </select>
               <input type="number" placeholder="自腹高速（円）" value={inputToll} onChange={e => setInputToll(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveToll()} />
@@ -906,7 +906,7 @@ const statValue = { fontSize: 18, fontWeight: 800, color: "#111", lineHeight: 1.
 const statUnit = { fontSize: 11, fontWeight: 600, color: "#999", marginLeft: 2 };
 const statSub = { fontSize: 10, color: "#bbb", marginTop: 2 };
 const miniBtn = { background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#888", fontSize: 10, cursor: "pointer", padding: "2px 7px", lineHeight: 1.2 };
-const inputStyle = { flex: 1, background: "#f5f5f5", border: "1.5px solid #ebebeb", borderRadius: 8, padding: "10px 12px", color: "#111", fontSize: 15, outline: "none" };
+const inputStyle = { flex: 1, background: "#f5f5f5", border: "1.5px solid #ebebeb", borderRadius: 8, padding: "10px 12px", color: "#111", fontSize: 16, outline: "none" };
 const primaryBtn = { background: "#111", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "10px 16px" };
 const ghostBtn = { background: "transparent", border: "1.5px solid #e0e0e0", borderRadius: 8, color: "#888", fontSize: 12, cursor: "pointer", padding: "6px 12px" };
 const navBtn = { background: "none", border: "none", color: "#ccc", fontSize: 26, cursor: "pointer", padding: "0 8px" };
