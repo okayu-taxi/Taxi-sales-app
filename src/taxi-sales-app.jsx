@@ -786,6 +786,7 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
   const baseTop = baseTiers.length > 0 ? baseTiers[baseTiers.length - 1] : null;
   const stored = Array.isArray(commission?.attendanceTable) ? commission.attendanceTable : [];
   const [rows, setRows] = useState(stored);
+  const [expanded, setExpanded] = useState(stored.length === 0);
   useEffect(() => { setRows(Array.isArray(commission?.attendanceTable) ? commission.attendanceTable : []); }, [commission?.attendanceTable]);
   const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
   const updateRow = (i, patch) => setRows(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r));
@@ -805,6 +806,17 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
     return <div style={{ fontSize: 12, color: "#ccc" }}>給料タブで歩合率を設定すると有効になります</div>;
   }
   const matched = rows.find(r => Number(r.work) === (periodAtt?.work || 0) && Number(r.paid) === (periodAtt?.paid || 0) && Number(r.absent) === (periodAtt?.absent || 0));
+  if (!expanded) {
+    return (
+      <button onClick={() => setExpanded(true)} style={{ width: "100%", textAlign: "left", background: "#f5f5f5", border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{stored.length > 0 ? `${stored.length}件を設定済` : "未設定"}</div>
+          <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{matched ? `今期は ¥${Number(matched.target).toLocaleString()} を適用中` : "今期に一致する行なし（基準値を使用）"}</div>
+        </div>
+        <span style={{ fontSize: 12, color: "#3399ff", fontWeight: 700 }}>編集 ▸</span>
+      </button>
+    );
+  }
   return (
     <>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
@@ -834,8 +846,8 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
         </div>
       </div>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button onClick={onSave} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
-        <button onClick={() => setRows(stored)} disabled={!dirty} style={{ ...ghostBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>取消</button>
+        <button onClick={() => { onSave(); setExpanded(false); }} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
+        <button onClick={() => { setRows(stored); setExpanded(false); }} style={{ ...ghostBtn, flex: 1, padding: "13px" }}>閉じる</button>
       </div>
       {(stored.length > 0 || rows.length > 0) && (
         <button onClick={() => { if (window.confirm("全ての行を消去します。よろしいですか？")) { setRows([]); saveAttendanceTable([]); } }} style={{ ...ghostBtn, width: "100%", padding: "10px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
@@ -847,6 +859,7 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
 function CommissionPanel({ commission, saveCommission }) {
   const initial = commission?.tiers?.length ? commission.tiers : [];
   const [tiers, setTiers] = useState(initial);
+  const [expanded, setExpanded] = useState(initial.length === 0);
   useEffect(() => { setTiers(commission?.tiers || []); }, [commission?.tiers]);
   const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
   const updateRow = (i, patch) => setTiers(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t));
@@ -859,6 +872,19 @@ function CommissionPanel({ commission, saveCommission }) {
     saveCommission({ tiers: cleaned });
   };
   const dirty = JSON.stringify(tiers) !== JSON.stringify(commission?.tiers || []);
+  const savedCount = commission?.tiers?.length || 0;
+  const topSaved = savedCount > 0 ? sortTiers(commission.tiers)[savedCount - 1] : null;
+  if (!expanded) {
+    return (
+      <button onClick={() => setExpanded(true)} style={{ width: "100%", textAlign: "left", background: "#f5f5f5", border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{savedCount > 0 ? `${savedCount}段階を設定済` : "未設定"}</div>
+          {topSaved && <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>最高 {topSaved.rate}% / 足切り ¥{(topSaved.threshold || 0).toLocaleString()}</div>}
+        </div>
+        <span style={{ fontSize: 12, color: "#3399ff", fontWeight: 700 }}>編集 ▸</span>
+      </button>
+    );
+  }
   return (
     <>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
@@ -885,8 +911,8 @@ function CommissionPanel({ commission, saveCommission }) {
       )}
       <button onClick={addRow} style={{ ...ghostBtn, width: "100%", padding: "10px", marginBottom: 8 }}>+ 段階を追加</button>
       <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button onClick={onSave} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
-        <button onClick={() => setTiers(commission?.tiers || [])} disabled={!dirty} style={{ ...ghostBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>取消</button>
+        <button onClick={() => { onSave(); setExpanded(false); }} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
+        <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ ...ghostBtn, flex: 1, padding: "13px" }}>閉じる</button>
       </div>
       {(commission?.tiers?.length > 0 || tiers.length > 0) && (
         <button onClick={() => { if (window.confirm("全ての段階を消去します。よろしいですか？")) { setTiers([]); saveCommission({ tiers: [] }); } }} style={{ ...ghostBtn, width: "100%", padding: "10px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
