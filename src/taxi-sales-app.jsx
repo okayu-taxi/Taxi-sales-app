@@ -91,16 +91,9 @@ const today = { year: _now.getFullYear(), month: _now.getMonth(), day: _now.getD
 function migrateData(d) {
   if (!d) return { settings: { closingDay: 0, commission: { tiers: [] } }, periods: {}, attendance: {} };
   d.settings = d.settings || {};
-  // Migrate from legacy minRate/midRate/maxRate/midThreshold/customTarget into tiers
-  const old = d.settings.commission;
-  if (!old || !Array.isArray(old.tiers)) {
-    const tiers = [];
-    if (old) {
-      if (old.minRate > 0) tiers.push({ threshold: 0, rate: Number(old.minRate) });
-      if (old.midThreshold > 0 && old.midRate > 0) tiers.push({ threshold: Number(old.midThreshold), rate: Number(old.midRate) });
-      if (old.customTarget > 0 && old.maxRate > 0) tiers.push({ threshold: Number(old.customTarget), rate: Number(old.maxRate) });
-    }
-    d.settings.commission = { tiers, attendanceTable: [] };
+  // Initialize commission as empty (no auto-migration of legacy values)
+  if (!d.settings.commission || !Array.isArray(d.settings.commission.tiers)) {
+    d.settings.commission = { tiers: [], attendanceTable: [] };
   } else if (!Array.isArray(d.settings.commission.attendanceTable)) {
     d.settings.commission.attendanceTable = [];
   }
@@ -816,10 +809,13 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
           {matched ? `¥${Number(matched.target).toLocaleString()}（一致行を適用）` : `¥${(baseTop.threshold || 0).toLocaleString()}（一致行なし → 基準値）`}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <button onClick={onSave} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
         <button onClick={() => setRows(stored)} disabled={!dirty} style={{ ...ghostBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>取消</button>
       </div>
+      {(stored.length > 0 || rows.length > 0) && (
+        <button onClick={() => { if (window.confirm("全ての行を消去します。よろしいですか？")) { setRows([]); saveAttendanceTable([]); } }} style={{ ...ghostBtn, width: "100%", padding: "10px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
+      )}
     </>
   );
 }
@@ -843,7 +839,7 @@ function CommissionPanel({ commission, saveCommission }) {
     <>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
         境界の営収（税抜・円）と、その金額に達した時の歩合（%）を1行ずつ追加してください。<br />
-        例: ¥0以上で50%、¥584,091以上で56.74%、¥627,110以上で61% など。何段階でも作れます。
+        営収がその境界以上になると、対応する歩合に切り替わります。何段階でも作れます。
       </div>
       {tiers.length === 0 ? (
         <div style={{ fontSize: 12, color: "#ccc", textAlign: "center", padding: "16px 0" }}>歩合がまだ登録されていません</div>
@@ -864,10 +860,13 @@ function CommissionPanel({ commission, saveCommission }) {
         </div>
       )}
       <button onClick={addRow} style={{ ...ghostBtn, width: "100%", padding: "10px", marginBottom: 8 }}>+ 段階を追加</button>
-      <div style={{ display: "flex", gap: 8 }}>
+      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
         <button onClick={onSave} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
         <button onClick={() => setTiers(commission?.tiers || [])} disabled={!dirty} style={{ ...ghostBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>取消</button>
       </div>
+      {(commission?.tiers?.length > 0 || tiers.length > 0) && (
+        <button onClick={() => { if (window.confirm("全ての段階を消去します。よろしいですか？")) { setTiers([]); saveCommission({ tiers: [] }); } }} style={{ ...ghostBtn, width: "100%", padding: "10px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
+      )}
     </>
   );
 }
