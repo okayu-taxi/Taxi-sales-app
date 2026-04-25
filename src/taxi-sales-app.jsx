@@ -445,8 +445,14 @@ export default function TaxiSalesApp() {
       const key = `${d.year}-${d.month}-${d.day}`;
       const v = pData.days[key];
       const sales = v?.sales;
+      const toll = v?.toll;
       const dow = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()];
-      return { label: `${d.day}(${dow})`, 売上: sales && sales > 0 ? sales : null, dateKey: key };
+      return {
+        label: `${d.day}(${dow})`,
+        売上: sales && sales > 0 ? sales : null,
+        自腹高速: toll && toll > 0 ? toll : null,
+        dateKey: key,
+      };
     });
   }, [datesInPeriod, pData.days]);
 
