@@ -7,8 +7,8 @@ export default function SalesChart({ chartData, totalDays, fmt, onPointClick }) 
     if (p && onPointClick) onPointClick(p.dateKey);
   };
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <LineChart data={chartData} margin={{ top: 26, right: 14, left: 4, bottom: 4 }} onClick={handleClick}>
+    <ResponsiveContainer width="100%" height={170}>
+      <LineChart data={chartData} margin={{ top: 22, right: 12, left: 4, bottom: 0 }} onClick={handleClick}>
         <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
         <XAxis dataKey="label" tick={{ fill: "#999", fontSize: 11 }} stroke="#eee" interval={interval} />
         <YAxis hide domain={[0, "dataMax + 5000"]} />

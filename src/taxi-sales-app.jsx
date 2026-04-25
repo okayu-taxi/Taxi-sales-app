@@ -286,12 +286,12 @@ export default function TaxiSalesApp() {
   return (
     <div style={{ minHeight: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80 }}>
 
-      <div style={{ background: "#fff", padding: "18px 20px 14px", borderBottom: "1px solid #ebebeb", boxShadow: "0 1px 3px rgba(0,0,0,0.04)" }}>
+      <div style={{ background: "#fff", padding: "8px 16px 6px", borderBottom: "1px solid #ebebeb" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <button onClick={prevPeriod} style={navBtn}>‹</button>
           <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: closingDay === 0 ? 20 : 14, fontWeight: 700, color: "#111", lineHeight: 1.3 }}>{period.label}</div>
-            <div style={{ fontSize: 11, color: "#ccc", marginTop: 2 }}>{closingLabel}</div>
+            <div style={{ fontSize: closingDay === 0 ? 17 : 13, fontWeight: 700, color: "#111", lineHeight: 1.2 }}>{period.label}</div>
+            <div style={{ fontSize: 10, color: "#ccc" }}>{closingLabel}</div>
           </div>
           <button onClick={nextPeriod} style={navBtn}>›</button>
         </div>
@@ -299,20 +299,38 @@ export default function TaxiSalesApp() {
 
       <div style={{ display: "flex", background: "#fff", borderBottom: "1px solid #ebebeb" }}>
         {[["home","ホーム"],["history","履歴"],["calendar","出番表"],["graph","給料"],["settings","設定"]].map(([key, label]) => (
-          <button key={key} onClick={() => setActiveTab(key)} style={{ flex: 1, padding: "11px 0", border: "none", background: "none", color: activeTab === key ? "#111" : "#ccc", fontWeight: activeTab === key ? 700 : 400, fontSize: 11, cursor: "pointer", borderBottom: activeTab === key ? "2px solid #111" : "2px solid transparent", transition: "all 0.15s" }}>{label}</button>
+          <button key={key} onClick={() => setActiveTab(key)} style={{ flex: 1, padding: "7px 0", border: "none", background: "none", color: activeTab === key ? "#111" : "#ccc", fontWeight: activeTab === key ? 700 : 400, fontSize: 11, cursor: "pointer", borderBottom: activeTab === key ? "2px solid #111" : "2px solid transparent", transition: "all 0.15s" }}>{label}</button>
         ))}
       </div>
 
-      <div style={{ padding: "16px" }}>
+      <div style={{ padding: "10px 12px" }}>
 
         {activeTab === "home" && <>
 
           {/* 2x2 統計グリッド */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
             <div style={statCard}>
-              <div style={statTitle}>締日までの目標</div>
-              <div style={statValue}>¥{fmt(goal)}</div>
-              <div style={statSub}>達成率 {pct}%</div>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={statTitle}>締日までの目標</span>
+                <button onClick={() => { setEditingGoal(!editingGoal); setGoalInput(""); }} style={miniBtn}>{editingGoal ? "×" : "編集"}</button>
+              </div>
+              {editingGoal ? (
+                <>
+                  <input type="number" placeholder="目標額" value={goalInput} onChange={e => setGoalInput(e.target.value)} style={{ ...inputStyle, fontSize: 13, padding: "6px 8px", marginTop: 4 }} onKeyDown={e => e.key === "Enter" && saveGoal()} />
+                  <div style={{ display: "flex", gap: 4, marginTop: 4 }}>
+                    <button onClick={saveGoal} style={{ ...primaryBtn, flex: 1, padding: "5px", fontSize: 12 }}>保存</button>
+                    {target61 && <button onClick={autoSetGoal61} style={{ ...ghostBtn, flex: 1, padding: "5px", fontSize: 11, color: "#c8900a", borderColor: "#F6BE00" }}>61%自動</button>}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={statValue}>¥{fmt(goal)}</div>
+                  <div style={{ background: "#eee", borderRadius: 99, height: 4, overflow: "hidden", marginTop: 4 }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: "#3399ff", transition: "width 0.4s" }} />
+                  </div>
+                  <div style={{ ...statSub, marginTop: 2 }}>達成率 {pct}%</div>
+                </>
+              )}
             </div>
             <div style={statCard}>
               <div style={statTitle}>{hasAtt ? "残り出勤" : "締日まで"}</div>
@@ -327,72 +345,37 @@ export default function TaxiSalesApp() {
             <div style={statCard}>
               <div style={statTitle}>1日平均</div>
               <div style={statValue}>¥{fmt(avgSoFar)}</div>
-              <div style={statSub}>必要日平均 ¥{fmt(dailyNeeded)}</div>
+              <div style={statSub}>必要 ¥{fmt(dailyNeeded)}/日</div>
             </div>
           </div>
-
-          {/* 期間目標 設定 */}
-          <div style={{ ...card, padding: "12px 14px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 12, color: "#999", fontWeight: 600 }}>期間目標を設定</span>
-              <div style={{ display: "flex", gap: 6 }}>
-                {target61 && !editingGoal && (
-                  <button onClick={autoSetGoal61} style={{ ...ghostBtn, fontSize: 11, color: "#c8900a", borderColor: "#F6BE00" }}>61%自動</button>
-                )}
-                <button onClick={() => { setEditingGoal(!editingGoal); setGoalInput(""); }} style={ghostBtn}>{editingGoal ? "閉じる" : "手動"}</button>
-              </div>
-            </div>
-            {editingGoal && (
-              <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <input type="number" placeholder="目標額を入力" value={goalInput} onChange={e => setGoalInput(e.target.value)} style={inputStyle} onKeyDown={e => e.key === "Enter" && saveGoal()} />
-                <button onClick={saveGoal} style={primaryBtn}>保存</button>
-              </div>
-            )}
-          </div>
-
-          {/* 進捗バー */}
-          {goal > 0 && (
-            <div style={{ ...card, padding: "12px 14px" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                <span style={{ fontSize: 12, color: "#999", fontWeight: 600 }}>進捗</span>
-                <span style={{ fontSize: 12, color: "#555", fontWeight: 700 }}>{pct}%</span>
-              </div>
-              <div style={{ background: "#ebebeb", borderRadius: 99, height: 7, overflow: "hidden" }}>
-                <div style={{ width: `${pct}%`, height: "100%", background: "#3399ff", borderRadius: 99, transition: "width 0.5s" }} />
-              </div>
-              {remaining === 0 && goal > 0 && <div style={{ marginTop: 10, textAlign: "center", fontSize: 16, fontWeight: 800 }}>🎉 目標達成！</div>}
-            </div>
-          )}
 
           {/* 日別売上グラフ */}
-          <div style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-              <span style={{ fontSize: 12, color: "#999", fontWeight: 600 }}>日報毎のデータ</span>
+          <div style={{ ...card, padding: "10px 10px 6px", marginBottom: 8 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4, padding: "0 4px" }}>
+              <span style={{ fontSize: 11, color: "#999", fontWeight: 600 }}>日報毎のデータ</span>
               <span style={{ fontSize: 10, color: "#bbb" }}>日付タップで編集</span>
             </div>
-            <Suspense fallback={<div style={{ height: 240, display: "flex", alignItems: "center", justifyContent: "center", color: "#ccc", fontSize: 12 }}>グラフを読み込み中…</div>}>
+            <Suspense fallback={<div style={{ height: 170, display: "flex", alignItems: "center", justifyContent: "center", color: "#ccc", fontSize: 12 }}>グラフを読み込み中…</div>}>
               <LazyChart chartData={chartData} totalDays={totalDays} fmt={fmt} onPointClick={onChartPointClick} />
             </Suspense>
           </div>
 
           {/* 売上入力カード */}
-          <div id="sales-input-card" style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-              <span style={lbl}>売上を入力</span>
+          <div id="sales-input-card" style={{ ...card, padding: "10px 12px", marginBottom: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ ...lbl, fontSize: 9 }}>売上を入力</span>
               {pData.days[inputDateKey] != null && (
-                <span style={{ fontSize: 11, color: "#3399ff", fontWeight: 700 }}>編集中</span>
+                <span style={{ fontSize: 10, color: "#3399ff", fontWeight: 700 }}>編集中</span>
               )}
             </div>
-            <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v != null ? String(v) : ""); }} style={{ ...inputStyle, width: 110, flex: "none" }}>
+            <div style={{ display: "flex", gap: 6 }}>
+              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v != null ? String(v) : ""); }} style={{ ...inputStyle, width: 100, flex: "none", padding: "8px 8px", fontSize: 13 }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; return <option key={k} value={k}>{d.month+1}月{d.day}日</option>; })}
               </select>
-              <input type="number" placeholder="金額（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={inputStyle} onKeyDown={e => e.key === "Enter" && saveDay()} />
-            </div>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={saveDay} style={{ ...primaryBtn, flex: 1, padding: "13px" }}>{pData.days[inputDateKey] != null ? "更新" : "記録する"}</button>
+              <input type="number" placeholder="金額（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
+              <button onClick={saveDay} style={{ ...primaryBtn, padding: "8px 14px" }}>{pData.days[inputDateKey] != null ? "更新" : "記録"}</button>
               {pData.days[inputDateKey] != null && (
-                <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); }} style={{ ...ghostBtn, padding: "13px 18px", color: "#e55", borderColor: "#f5c8c8" }}>削除</button>
+                <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); }} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8" }}>削除</button>
               )}
             </div>
           </div>
@@ -605,11 +588,12 @@ const card = { background: "#fff", border: "1px solid #ebebeb", borderRadius: 14
 const lbl = { fontSize: 10, color: "#bbb", letterSpacing: 1.5, fontWeight: 700, textTransform: "uppercase" };
 const statBox = { background: "#f5f5f5", borderRadius: 10, padding: "12px 14px" };
 const statLbl = { fontSize: 11, color: "#bbb", marginBottom: 4 };
-const statCard = { background: "#fff", border: "1px solid #ebebeb", borderRadius: 14, padding: "12px 14px", boxShadow: "0 1px 4px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", gap: 2, minHeight: 86 };
-const statTitle = { fontSize: 11, color: "#999", fontWeight: 600 };
-const statValue = { fontSize: 20, fontWeight: 800, color: "#111", lineHeight: 1.2 };
-const statUnit = { fontSize: 12, fontWeight: 600, color: "#999", marginLeft: 2 };
-const statSub = { fontSize: 11, color: "#bbb", marginTop: "auto" };
+const statCard = { background: "#fff", border: "1px solid #ebebeb", borderRadius: 12, padding: "8px 10px", boxShadow: "0 1px 4px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", gap: 1 };
+const statTitle = { fontSize: 10, color: "#999", fontWeight: 600 };
+const statValue = { fontSize: 18, fontWeight: 800, color: "#111", lineHeight: 1.2, marginTop: 2 };
+const statUnit = { fontSize: 11, fontWeight: 600, color: "#999", marginLeft: 2 };
+const statSub = { fontSize: 10, color: "#bbb", marginTop: 2 };
+const miniBtn = { background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#888", fontSize: 10, cursor: "pointer", padding: "2px 7px", lineHeight: 1.2 };
 const inputStyle = { flex: 1, background: "#f5f5f5", border: "1.5px solid #ebebeb", borderRadius: 8, padding: "10px 12px", color: "#111", fontSize: 15, outline: "none" };
 const primaryBtn = { background: "#111", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "10px 16px" };
 const ghostBtn = { background: "transparent", border: "1.5px solid #e0e0e0", borderRadius: 8, color: "#888", fontSize: 12, cursor: "pointer", padding: "6px 12px" };
