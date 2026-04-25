@@ -368,18 +368,23 @@ export default function TaxiSalesApp() {
   }, []);
 
   const updPeriod = useCallback((np) => setData(p => ({ ...p, periods: { ...p.periods, [pKey]: np } })), [pKey]);
-  const saveDay = useCallback(() => {
-    const sStr = inputAmount.replace(/,/g, "").trim();
-    const tStr = inputToll.replace(/,/g, "").trim();
-    const sales = sStr === "" ? null : parseInt(sStr);
-    const toll = tStr === "" ? null : parseInt(tStr);
-    if (sales === null && toll === null) return;
-    if ((sales !== null && isNaN(sales)) || (toll !== null && isNaN(toll))) return;
+  const saveSales = useCallback(() => {
+    const s = parseInt(inputAmount.replace(/,/g, ""));
+    if (!s || isNaN(s)) return;
     const cur = pData.days[inputDateKey] || { sales: 0, toll: 0 };
-    const next = { sales: sales !== null ? sales : (cur.sales || 0), toll: toll !== null ? toll : (cur.toll || 0) };
-    updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: next } });
-    setInputAmount(""); setInputToll("");
-  }, [inputAmount, inputToll, inputDateKey, pData, updPeriod]);
+    updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: { ...cur, sales: s } } });
+    setInputAmount("");
+  }, [inputAmount, inputDateKey, pData, updPeriod]);
+
+  const saveToll = useCallback(() => {
+    const tStr = inputToll.replace(/,/g, "").trim();
+    if (tStr === "") return;
+    const t = parseInt(tStr);
+    if (isNaN(t) || t < 0) return;
+    const cur = pData.days[inputDateKey] || { sales: 0, toll: 0 };
+    updPeriod({ ...pData, days: { ...pData.days, [inputDateKey]: { ...cur, toll: t } } });
+    setInputToll("");
+  }, [inputToll, inputDateKey, pData, updPeriod]);
   const saveGoal = useCallback(() => { const g = parseInt(goalInput.replace(/,/g, "")); if (!g || isNaN(g)) return; updPeriod({ ...pData, goal: g }); setGoalInput(""); setEditingGoal(false); }, [goalInput, pData, updPeriod]);
   const autoSetGoal61 = useCallback(() => {
     if (!target61) return;
@@ -573,25 +578,36 @@ export default function TaxiSalesApp() {
           </div>
 
           {/* 売上入力カード */}
-          <div id="sales-input-card" style={{ ...card, padding: "10px 12px", marginBottom: 0 }}>
+          <div id="sales-input-card" style={{ ...card, padding: "10px 12px", marginBottom: 8 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <span style={{ ...lbl, fontSize: 9 }}>売上を入力</span>
               {pData.days[inputDateKey] != null && (
                 <span style={{ fontSize: 10, color: "#3399ff", fontWeight: 700 }}>編集中</span>
               )}
             </div>
-            <div style={{ display: "flex", gap: 6, alignItems: "stretch", marginBottom: 6 }}>
+            <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
               <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v?.sales != null ? String(v.sales) : ""); setInputToll(v?.toll ? String(v.toll) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 13, boxSizing: "border-box" }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; const w = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()]; return <option key={k} value={k}>{d.month+1}月{d.day}日({w})</option>; })}
               </select>
-              <input type="number" placeholder="売上（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
-            </div>
-            <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-              <input type="number" placeholder="自腹高速（円）" value={inputToll} onChange={e => setInputToll(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveDay()} />
-              <button onClick={saveDay} style={{ ...primaryBtn, padding: "8px 16px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputDateKey] != null ? "更新" : "記録"}</button>
+              <input type="number" placeholder="売上（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveSales()} />
+              <button onClick={saveSales} style={{ ...primaryBtn, padding: "8px 14px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputDateKey]?.sales ? "更新" : "記録"}</button>
               {pData.days[inputDateKey] != null && (
                 <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); setInputToll(""); }} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8", flex: "none", whiteSpace: "nowrap" }}>削除</button>
               )}
+            </div>
+          </div>
+
+          {/* 自腹高速入力カード */}
+          <div style={{ ...card, padding: "10px 12px", marginBottom: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+              <span style={{ ...lbl, fontSize: 9 }}>自腹高速を入力</span>
+              <span style={{ fontSize: 10, color: "#bbb" }}>
+                {(() => { const [y,m,d] = inputDateKey.split("-").map(Number); if (!y) return ""; const w = WEEKDAYS[new Date(y, m, d).getDay()]; return `${m+1}月${d}日(${w})`; })()}
+              </span>
+            </div>
+            <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
+              <input type="number" placeholder="自腹高速（円）" value={inputToll} onChange={e => setInputToll(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveToll()} />
+              <button onClick={saveToll} style={{ ...primaryBtn, padding: "8px 14px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputDateKey]?.toll ? "更新" : "記録"}</button>
             </div>
           </div>
         </>}
