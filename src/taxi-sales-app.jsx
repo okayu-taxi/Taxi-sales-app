@@ -400,6 +400,34 @@ export default function TaxiSalesApp() {
     }));
   }, [target61, pKey]);
   const deleteDay = useCallback((key) => { const nd = { ...pData.days }; delete nd[key]; updPeriod({ ...pData, days: nd }); }, [pData, updPeriod]);
+
+  const deleteSales = useCallback(() => {
+    const cur = pData.days[inputDateKey];
+    if (!cur) return;
+    const days = { ...pData.days };
+    if (cur.toll) {
+      const next = { ...cur }; delete next.sales;
+      days[inputDateKey] = next;
+    } else {
+      delete days[inputDateKey];
+    }
+    updPeriod({ ...pData, days });
+    setInputAmount("");
+  }, [inputDateKey, pData, updPeriod]);
+
+  const deleteToll = useCallback(() => {
+    const cur = pData.days[inputTollDateKey];
+    if (!cur?.toll) return;
+    const days = { ...pData.days };
+    if (cur.sales) {
+      const next = { ...cur }; delete next.toll;
+      days[inputTollDateKey] = next;
+    } else {
+      delete days[inputTollDateKey];
+    }
+    updPeriod({ ...pData, days });
+    setInputToll("");
+  }, [inputTollDateKey, pData, updPeriod]);
   const saveClosing = useCallback(() => { const v = parseInt(closingInput); if (isNaN(v) || v < 0 || v > 28) return; setData(p => ({ ...p, settings: { ...p.settings, closingDay: v } })); setClosingInput(""); setEditingClosing(false); }, [closingInput]);
 
   const toggleAtt = useCallback((y, m, d) => {
@@ -597,8 +625,8 @@ export default function TaxiSalesApp() {
               </select>
               <input type="number" placeholder="売上（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveSales()} />
               <button onClick={saveSales} style={{ ...primaryBtn, padding: "8px 14px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputDateKey]?.sales ? "更新" : "記録"}</button>
-              {pData.days[inputDateKey] != null && (
-                <button onClick={() => { deleteDay(inputDateKey); setInputAmount(""); setInputToll(""); }} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8", flex: "none", whiteSpace: "nowrap" }}>削除</button>
+              {pData.days[inputDateKey]?.sales > 0 && (
+                <button onClick={deleteSales} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8", flex: "none", whiteSpace: "nowrap" }}>削除</button>
               )}
             </div>
           </div>
@@ -617,6 +645,9 @@ export default function TaxiSalesApp() {
               </select>
               <input type="number" placeholder="自腹高速（円）" value={inputToll} onChange={e => setInputToll(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveToll()} />
               <button onClick={saveToll} style={{ ...primaryBtn, padding: "8px 14px", flex: "none", whiteSpace: "nowrap" }}>{pData.days[inputTollDateKey]?.toll ? "更新" : "記録"}</button>
+              {pData.days[inputTollDateKey]?.toll > 0 && (
+                <button onClick={deleteToll} style={{ ...ghostBtn, padding: "8px 10px", color: "#e55", borderColor: "#f5c8c8", flex: "none", whiteSpace: "nowrap" }}>削除</button>
+              )}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 10px", background: "#fafafa", borderRadius: 8 }}>
               <span style={{ fontSize: 11, color: "#999", fontWeight: 600 }}>今期の自腹高速 合計</span>
