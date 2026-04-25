@@ -7,7 +7,20 @@ const STORAGE_KEY = "taxi_sales_data_v3";
 
 const DEFAULT_COMMISSION = {
   tiers: [], // [{ threshold: number(税抜), rate: number(%)}]
+  attendanceAdjust: { paidPenalty: 0, absentPenalty: 0 },
 };
+
+function applyAttendanceAdjust(tiers, periodAtt, conf) {
+  const sorted = sortTiers(tiers);
+  if (sorted.length === 0) return sorted;
+  const adj = conf?.attendanceAdjust || { paidPenalty: 0, absentPenalty: 0 };
+  const delta = (periodAtt?.paid || 0) * (adj.paidPenalty || 0) + (periodAtt?.absent || 0) * (adj.absentPenalty || 0);
+  if (!delta) return sorted;
+  const out = [...sorted];
+  const last = out[out.length - 1];
+  out[out.length - 1] = { ...last, threshold: (last.threshold || 0) + delta };
+  return out;
+}
 
 function sortTiers(tiers) {
   return [...(tiers || [])].sort((a, b) => (a.threshold || 0) - (b.threshold || 0));
@@ -83,7 +96,9 @@ function migrateData(d) {
       if (old.midThreshold > 0 && old.midRate > 0) tiers.push({ threshold: Number(old.midThreshold), rate: Number(old.midRate) });
       if (old.customTarget > 0 && old.maxRate > 0) tiers.push({ threshold: Number(old.customTarget), rate: Number(old.maxRate) });
     }
-    d.settings.commission = { tiers };
+    d.settings.commission = { tiers, attendanceAdjust: { paidPenalty: 0, absentPenalty: 0 } };
+  } else if (!d.settings.commission.attendanceAdjust) {
+    d.settings.commission.attendanceAdjust = { paidPenalty: 0, absentPenalty: 0 };
   }
   if (d.attendance) {
     const mig = {};
@@ -146,9 +161,10 @@ export default function TaxiSalesApp() {
   }, [datesInPeriod, attendance]);
 
   const commission = useMemo(() => ({ ...DEFAULT_COMMISSION, ...(data.settings?.commission || {}) }), [data.settings?.commission]);
-  const sortedTiers = useMemo(() => sortTiers(commission.tiers), [commission.tiers]);
+  const sortedTiers = useMemo(() => applyAttendanceAdjust(commission.tiers, periodAtt, commission), [commission, periodAtt]);
   const topRateTier = useMemo(() => sortedTiers.length > 0 ? sortedTiers[sortedTiers.length - 1] : null, [sortedTiers]);
   const targetTop = topRateTier?.threshold || 0;
+  const effectiveCommission = useMemo(() => ({ ...commission, tiers: sortedTiers }), [commission, sortedTiers]);
 
   useEffect(() => {
     const tin = datesInPeriod.find(d => d.year === today.year && d.month === today.month && d.day === today.day);
@@ -344,7 +360,10 @@ export default function TaxiSalesApp() {
   const saveClosing = useCallback(() => { const v = parseInt(closingInput); if (isNaN(v) || v < 0 || v > 28) return; setData(p => ({ ...p, settings: { ...p.settings, closingDay: v } })); setClosingInput(""); setEditingClosing(false); }, [closingInput]);
 
   const saveCommission = useCallback((conf) => {
-    setData(p => ({ ...p, settings: { ...p.settings, commission: { ...DEFAULT_COMMISSION, ...conf } } }));
+    setData(p => ({ ...p, settings: { ...p.settings, commission: { ...DEFAULT_COMMISSION, ...(p.settings?.commission || {}), ...conf } } }));
+  }, []);
+  const saveAttendanceAdjust = useCallback((adj) => {
+    setData(p => ({ ...p, settings: { ...p.settings, commission: { ...DEFAULT_COMMISSION, ...(p.settings?.commission || {}), attendanceAdjust: adj } } }));
   }, []);
 
   const toggleAtt = useCallback((y, m, d) => {
@@ -366,8 +385,8 @@ export default function TaxiSalesApp() {
   const tollTotal = useMemo(() => Object.values(pData.days).reduce((a, b) => a + (b?.toll || 0), 0), [pData.days]);
   const goal = pData.goal || 0;
   const remaining = Math.max(0, goal - total);
-  const commissionRate = useMemo(() => getCommissionRate(total, commission), [total, commission]);
-  const estimatedSalary = useMemo(() => estimateSalary(total, commission), [total, commission]);
+  const commissionRate = useMemo(() => getCommissionRate(total, effectiveCommission), [total, effectiveCommission]);
+  const estimatedSalary = useMemo(() => estimateSalary(total, effectiveCommission), [total, effectiveCommission]);
 
   const { daysLeft, totalDays, todayIndex } = useMemo(() => {
     const idx = datesInPeriod.findIndex(d => d.year === today.year && d.month === today.month && d.day === today.day);
@@ -624,6 +643,12 @@ export default function TaxiSalesApp() {
               </div>
             )}
           </div>
+
+          {/* 歩合率設定 */}
+          <div style={card}>
+            <div style={{ ...lbl, marginBottom: 12 }}>歩合率設定</div>
+            <CommissionPanel commission={commission} saveCommission={saveCommission} />
+          </div>
         </>}
 
         {activeTab === "calendar" && <> {/* 出番表 */}
@@ -672,6 +697,12 @@ export default function TaxiSalesApp() {
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 18, height: 18, border: "2px solid #999", borderRadius: 5 }} />今日</div>
             </div>
           </div>
+
+          {/* 出勤による歩合率調整 */}
+          <div style={card}>
+            <div style={{ ...lbl, marginBottom: 12 }}>歩合率の出勤調整</div>
+            <AttendanceAdjustPanel commission={commission} periodAtt={periodAtt} saveAttendanceAdjust={saveAttendanceAdjust} />
+          </div>
         </>}
 
         {activeTab === "settings" && (
@@ -701,11 +732,6 @@ export default function TaxiSalesApp() {
             </div>
 
             <div style={card}>
-              <div style={{ ...lbl, marginBottom: 12 }}>歩合率設定</div>
-              <CommissionPanel commission={commission} saveCommission={saveCommission} />
-            </div>
-
-            <div style={card}>
               <div style={{ ...lbl, marginBottom: 12 }}>クラウド同期 (GitHub Gist)</div>
               <GistSyncPanel pat={pat} gistId={gistId} status={syncStatus} setupSync={setupSync} disconnectSync={disconnectSync} manualSync={manualSync} />
             </div>
@@ -731,6 +757,52 @@ export default function TaxiSalesApp() {
         )}
       </div>
     </div>
+  );
+}
+
+function AttendanceAdjustPanel({ commission, periodAtt, saveAttendanceAdjust }) {
+  const cur = commission?.attendanceAdjust || { paidPenalty: 0, absentPenalty: 0 };
+  const [paid, setPaid] = useState(String(cur.paidPenalty || 0));
+  const [absent, setAbsent] = useState(String(cur.absentPenalty || 0));
+  useEffect(() => {
+    setPaid(String(cur.paidPenalty || 0));
+    setAbsent(String(cur.absentPenalty || 0));
+  }, [cur.paidPenalty, cur.absentPenalty]);
+  const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+  const dirty = num(paid) !== (cur.paidPenalty || 0) || num(absent) !== (cur.absentPenalty || 0);
+  const onSave = () => saveAttendanceAdjust({ paidPenalty: Math.round(num(paid)), absentPenalty: Math.round(num(absent)) });
+  const baseTiers = sortTiers(commission?.tiers || []);
+  const baseTop = baseTiers.length > 0 ? baseTiers[baseTiers.length - 1] : null;
+  if (!baseTop) {
+    return <div style={{ fontSize: 12, color: "#ccc" }}>給料タブで歩合率を設定すると有効になります</div>;
+  }
+  const liveDelta = (periodAtt.paid || 0) * num(paid) + (periodAtt.absent || 0) * num(absent);
+  const effective = (baseTop.threshold || 0) + liveDelta;
+  return (
+    <>
+      <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
+        最高歩合（{baseTop.rate}%）の境界営収を、有休／欠勤1日あたり何円ずつ加算するかを設定します。
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+        <div>
+          <div style={{ fontSize: 11, color: "#999", marginBottom: 4, fontWeight: 600 }}>有休 1日あたりの加算（円）</div>
+          <input type="number" value={paid} onChange={e => setPaid(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", width: "100%" }} />
+        </div>
+        <div>
+          <div style={{ fontSize: 11, color: "#999", marginBottom: 4, fontWeight: 600 }}>欠勤 1日あたりの加算（円）</div>
+          <input type="number" value={absent} onChange={e => setAbsent(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", width: "100%" }} />
+        </div>
+      </div>
+      <div style={{ padding: "10px 12px", background: "#f5f5f5", borderRadius: 8, marginBottom: 10 }}>
+        <div style={{ fontSize: 10, color: "#999", marginBottom: 4 }}>今期の調整後 最高歩合の境界（税抜）</div>
+        <div style={{ fontSize: 14, fontWeight: 700 }}>¥{effective.toLocaleString()}</div>
+        <div style={{ fontSize: 10, color: "#bbb", marginTop: 2 }}>基準 ¥{(baseTop.threshold || 0).toLocaleString()} ＋ 有休{periodAtt.paid || 0}日 × ¥{num(paid).toLocaleString()} ＋ 欠勤{periodAtt.absent || 0}日 × ¥{num(absent).toLocaleString()}</div>
+      </div>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button onClick={onSave} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
+        <button onClick={() => { setPaid(String(cur.paidPenalty || 0)); setAbsent(String(cur.absentPenalty || 0)); }} disabled={!dirty} style={{ ...ghostBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>取消</button>
+      </div>
+    </>
   );
 }
 
