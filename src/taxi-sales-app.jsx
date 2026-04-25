@@ -132,6 +132,7 @@ export default function TaxiSalesApp() {
   const [editingGoal, setEditingGoal] = useState(false);
   const [editingClosing, setEditingClosing] = useState(false);
   const [closingInput, setClosingInput] = useState("");
+  const [confirmingReset, setConfirmingReset] = useState(false);
 
   const [data, setData] = useState(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return migrateData(s ? JSON.parse(s) : null); }
@@ -749,6 +750,29 @@ export default function TaxiSalesApp() {
                 window.location.reload();
               }} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>最新版に更新する</button>
               <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>キャッシュとService Workerを破棄してから再読み込みします。</div>
+            </div>
+
+            <div style={card}>
+              <div style={{ ...lbl, marginBottom: 12 }}>設定リセット</div>
+              <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
+                締日・歩合率・出勤調整など、全ての設定値を消去します。売上記録には影響しません。
+              </div>
+              {!confirmingReset ? (
+                <button onClick={() => setConfirmingReset(true)} style={{ background: "#e55", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "13px", width: "100%" }}>
+                  全ての設定を削除
+                </button>
+              ) : (
+                <>
+                  <div style={{ fontSize: 12, color: "#e55", fontWeight: 700, marginBottom: 8, textAlign: "center" }}>本当に削除しますか？</div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => {
+                      setData(p => ({ ...p, settings: { closingDay: 0, commission: { tiers: [], attendanceTable: [] } } }));
+                      setConfirmingReset(false);
+                    }} style={{ background: "#e55", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "13px", flex: 1 }}>削除する</button>
+                    <button onClick={() => setConfirmingReset(false)} style={{ ...ghostBtn, flex: 1, padding: "13px" }}>キャンセル</button>
+                  </div>
+                </>
+              )}
             </div>
           </>
         )}
