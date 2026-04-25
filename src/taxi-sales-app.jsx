@@ -617,31 +617,6 @@ export default function TaxiSalesApp() {
             })()}
           </div>
 
-          {/* 歩合率のしくみ */}
-          <div style={card}>
-            <div style={{ ...lbl, marginBottom: 4 }}>歩合率のしくみ</div>
-            <div style={{ fontSize: 11, color: "#ccc", marginBottom: 12 }}>営収が足切りを超えると次の歩合に切り替わります</div>
-            {sortedTiers.length === 0 ? (
-              <div style={{ fontSize: 12, color: "#ccc", textAlign: "center", padding: "12px 0" }}>設定タブで歩合率を追加してください</div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {sortedTiers.map((t, i) => {
-                  const isTop = i === sortedTiers.length - 1;
-                  const isCurrent = commissionRate === (t.rate || 0);
-                  return (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: isTop ? "#FFF8E0" : "#f5f5f5", borderRadius: 10, border: isTop ? "1px solid #F6BE00" : isCurrent ? "1px solid #3399ff" : "none" }}>
-                      <div>
-                        <div style={{ fontSize: 12, color: "#aaa" }}>足切り（税込）</div>
-                        <div style={{ fontSize: 12, color: "#bbb" }}>¥{fmt(t.threshold || 0)}以上</div>
-                      </div>
-                      <span style={{ fontSize: 16, fontWeight: 800, color: isTop ? "#c8900a" : "#111" }}>{t.rate}%</span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
           {/* 歩合率設定 */}
           <div style={card}>
             <div style={{ ...lbl, marginBottom: 12 }}>歩合率設定</div>
