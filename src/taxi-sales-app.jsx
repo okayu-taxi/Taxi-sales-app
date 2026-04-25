@@ -524,7 +524,7 @@ export default function TaxiSalesApp() {
               )}
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "stretch" }}>
-              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v?.sales != null ? String(v.sales) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 16, boxSizing: "border-box" }}>
+              <select value={inputDateKey} onChange={e => { setInputDateKey(e.target.value); const v = pData.days[e.target.value]; setInputAmount(v?.sales != null ? String(v.sales) : ""); }} style={{ ...inputStyle, width: 150, flex: "none", padding: "8px", fontSize: 16, boxSizing: "border-box" }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; const w = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()]; return <option key={k} value={k}>{d.month+1}月{d.day}日({w})</option>; })}
               </select>
               <input type="number" placeholder="売上（円）" value={inputAmount} onChange={e => setInputAmount(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveSales()} />
@@ -544,7 +544,7 @@ export default function TaxiSalesApp() {
               ) : null}
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "stretch", marginBottom: 8 }}>
-              <select value={inputTollDateKey} onChange={e => { setInputTollDateKey(e.target.value); const v = pData.days[e.target.value]; setInputToll(v?.toll ? String(v.toll) : ""); }} style={{ ...inputStyle, width: 116, flex: "none", padding: "8px", fontSize: 16, boxSizing: "border-box" }}>
+              <select value={inputTollDateKey} onChange={e => { setInputTollDateKey(e.target.value); const v = pData.days[e.target.value]; setInputToll(v?.toll ? String(v.toll) : ""); }} style={{ ...inputStyle, width: 150, flex: "none", padding: "8px", fontSize: 16, boxSizing: "border-box" }}>
                 {datesInPeriod.map(d => { const k = `${d.year}-${d.month}-${d.day}`; const w = WEEKDAYS[new Date(d.year, d.month, d.day).getDay()]; return <option key={k} value={k}>{d.month+1}月{d.day}日({w})</option>; })}
               </select>
               <input type="number" placeholder="自腹高速（円）" value={inputToll} onChange={e => setInputToll(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", minWidth: 0, boxSizing: "border-box" }} onKeyDown={e => e.key === "Enter" && saveToll()} />
