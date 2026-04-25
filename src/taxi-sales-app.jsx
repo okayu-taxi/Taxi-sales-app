@@ -611,7 +611,7 @@ export default function TaxiSalesApp() {
               )}
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "6px 10px", background: "#fafafa", borderRadius: 8 }}>
-              <span style={{ fontSize: 11, color: "#999", fontWeight: 600 }}>今期の自腹高速 合計</span>
+              <span style={{ fontSize: 11, color: "#999", fontWeight: 600 }}>今月の自腹高速 合計</span>
               <span style={{ fontSize: 16, fontWeight: 800, color: "#e55" }}>¥{fmt(tollTotal)}</span>
             </div>
           </div>
@@ -669,7 +669,7 @@ export default function TaxiSalesApp() {
           </div>
           {(periodAtt.work > 0 || periodAtt.paid > 0 || periodAtt.absent > 0) && (
             <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今期の出勤状況</div>
+              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出勤状況</div>
               <div style={{ display: "flex", gap: 16 }}>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出勤</div></div>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#4a90d9" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
@@ -818,7 +818,7 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
       <button onClick={() => setExpanded(true)} style={{ width: "100%", textAlign: "left", background: "#f5f5f5", border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{stored.length > 0 ? `${stored.length}件を設定済` : "未設定"}</div>
-          <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{matched ? `今期は ¥${Number(matched.target).toLocaleString()} を適用中` : "今期に一致する行なし（基準値を使用）"}</div>
+          <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{matched ? `今月は ¥${Number(matched.target).toLocaleString()} を適用中` : "今月に一致する行なし（基準値を使用）"}</div>
         </div>
         <span style={{ fontSize: 12, color: "#3399ff", fontWeight: 700 }}>編集 ▸</span>
       </button>
@@ -827,7 +827,7 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
   return (
     <>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        出勤数・有休数・欠勤数の組み合わせごとに、最高歩合（{baseTop.rate}%）の足切り（税込）を入力できます。今期の出勤状況と一致した行があれば、その値が自動で反映されます。
+        出勤数・有休数・欠勤数の組み合わせごとに、最高歩合（{baseTop.rate}%）の足切り（税込）を入力できます。今月の出勤状況と一致した行があれば、その値が自動で反映されます。
       </div>
       {rows.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 28px", gap: 4, fontSize: 10, color: "#999", padding: "0 4px", marginBottom: 4 }}>
@@ -847,7 +847,7 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
       </div>
       <button onClick={addRow} style={{ ...ghostBtn, width: "100%", padding: "10px", marginBottom: 10 }}>+ 行を追加</button>
       <div style={{ padding: "10px 12px", background: matched ? "#FFF8E0" : "#f5f5f5", borderRadius: 8, marginBottom: 10, border: matched ? "1px solid #F6BE00" : "none" }}>
-        <div style={{ fontSize: 10, color: "#999", marginBottom: 4 }}>今期（出勤{periodAtt?.work || 0}日 / 有休{periodAtt?.paid || 0}日 / 欠勤{periodAtt?.absent || 0}日）</div>
+        <div style={{ fontSize: 10, color: "#999", marginBottom: 4 }}>今月（出勤{periodAtt?.work || 0}日 / 有休{periodAtt?.paid || 0}日 / 欠勤{periodAtt?.absent || 0}日）</div>
         <div style={{ fontSize: 14, fontWeight: 700 }}>
           {matched ? `¥${Number(matched.target).toLocaleString()}（一致行を適用）` : `¥${(baseTop.threshold || 0).toLocaleString()}（一致行なし → 基準値）`}
         </div>
