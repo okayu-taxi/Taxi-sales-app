@@ -133,6 +133,7 @@ export default function TaxiSalesApp() {
   const [editingClosing, setEditingClosing] = useState(false);
   const [closingInput, setClosingInput] = useState("");
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const swipeRef = useRef(null);
 
   const [data, setData] = useState(() => {
     try { const s = localStorage.getItem(STORAGE_KEY); return migrateData(s ? JSON.parse(s) : null); }
@@ -486,7 +487,34 @@ export default function TaxiSalesApp() {
         ))}
       </div>
 
-      <div style={{ padding: "10px 12px" }}>
+      <div
+        style={{ padding: "10px 12px" }}
+        onTouchStart={(e) => {
+          let el = e.target;
+          while (el && el !== e.currentTarget) {
+            const tag = el.tagName;
+            if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA" || tag === "BUTTON") { swipeRef.current = null; return; }
+            const cs = window.getComputedStyle(el);
+            if ((cs.overflowX === "auto" || cs.overflowX === "scroll") && el.scrollWidth > el.clientWidth + 2) { swipeRef.current = null; return; }
+            el = el.parentElement;
+          }
+          const t = e.touches[0];
+          swipeRef.current = { x: t.clientX, y: t.clientY };
+        }}
+        onTouchEnd={(e) => {
+          const s = swipeRef.current;
+          if (!s) return;
+          const t = e.changedTouches[0];
+          const dx = t.clientX - s.x;
+          const dy = t.clientY - s.y;
+          swipeRef.current = null;
+          if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
+          const tabs = ["home", "calendar", "graph", "settings"];
+          const idx = tabs.indexOf(activeTab);
+          if (dx < 0 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
+          else if (dx > 0 && idx > 0) setActiveTab(tabs[idx - 1]);
+        }}
+      >
 
         {activeTab === "home" && <>
 
