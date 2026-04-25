@@ -588,6 +588,23 @@ export default function TaxiSalesApp() {
               </label>
               <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>PWAを再インストールする前にエクスポートしておくとデータが消えません。</div>
             </div>
+            <div style={{ marginTop: 20 }}>
+              <div style={{ ...lbl, marginBottom: 12 }}>アプリ更新</div>
+              <button onClick={async () => {
+                try {
+                  if ('serviceWorker' in navigator) {
+                    const regs = await navigator.serviceWorker.getRegistrations();
+                    await Promise.all(regs.map(r => r.unregister()));
+                  }
+                  if (window.caches) {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                  }
+                } catch {}
+                window.location.reload();
+              }} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>最新版に更新する</button>
+              <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>キャッシュとService Workerを破棄してから再読み込みします。</div>
+            </div>
           </div>
         )}
       </div>
