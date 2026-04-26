@@ -419,6 +419,8 @@ export default function TaxiSalesApp() {
   const hasAtt = Object.values(attendance).some(v => v === 'work');
   const effLeft = hasAtt ? attLeft : daysLeft;
   const dailyNeeded = effLeft > 0 ? Math.ceil(remaining / effLeft) : 0;
+  const initialDaily = goal > 0 && periodAtt.work > 0 ? Math.ceil(goal / periodAtt.work) : 0;
+  const isBehindPace = initialDaily > 0 && remaining > 0 && dailyNeeded > initialDaily;
   const pct = goal > 0 ? Math.min(100, Math.round((total / goal) * 100)) : 0;
 
   const chartData = useMemo(() => {
@@ -590,7 +592,7 @@ export default function TaxiSalesApp() {
               <div style={statTitle}>目標まで残り</div>
               <div style={statValue}>¥{fmt(remaining)}</div>
               <div style={{ fontSize: 10, color: "#999", marginTop: 4 }}>目標までの1日平均</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: "#333" }}>¥{fmt(dailyNeeded)}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: isBehindPace ? "#e55" : "#333" }}>¥{fmt(dailyNeeded)}</div>
             </div>
             <div style={statCard}>
               <div style={statTitle}>現在の総営収</div>
