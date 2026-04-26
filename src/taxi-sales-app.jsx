@@ -6,7 +6,7 @@ const LazyChart = lazy(() => import("./SalesChart"));
 const STORAGE_KEY = "taxi_sales_data_v3";
 
 const DEFAULT_COMMISSION = {
-  tiers: [], // [{ threshold: number(税込), rate: number(%)}]
+  tiers: [], // [{ threshold: number, rate: number(%)}]
   attendanceTable: [], // [{ work, paid, absent, target }] — 一致した行があれば最高歩合の足切りを target に置き換え
 };
 
@@ -680,9 +680,9 @@ export default function TaxiSalesApp() {
               }
               return (
                 <div style={{ background: "#f5f5f5", borderRadius: 10, padding: "12px 14px" }}>
-                  <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4 }}>次の {next.rate}% まであと（税込）</div>
+                  <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4 }}>次の {next.rate}% まであと</div>
                   <div style={{ fontSize: 22, fontWeight: 700 }}>¥{fmt((next.threshold || 0) - total)}</div>
-                  <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>足切り（税込）¥{fmt(next.threshold || 0)}　達成時給料 ¥{fmt(Math.round((next.threshold || 0) * (next.rate || 0) / 100))}</div>
+                  <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>足切り ¥{fmt(next.threshold || 0)}　達成時給料 ¥{fmt(Math.round((next.threshold || 0) * (next.rate || 0) / 100))}</div>
                 </div>
               );
             })()}
@@ -715,7 +715,7 @@ export default function TaxiSalesApp() {
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出勤</div></div>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#4a90d9" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>欠勤</div></div>
-                {topRateTier && targetTop > 0 && <div style={{ marginLeft: "auto", textAlign: "right" }}><div style={{ fontSize: 11, color: "#bbb" }}>{topRateTier.rate}%足切り（税込）</div><div style={{ fontSize: 14, fontWeight: 700 }}>¥{fmt(targetTop)}</div></div>}
+                {topRateTier && targetTop > 0 && <div style={{ marginLeft: "auto", textAlign: "right" }}><div style={{ fontSize: 11, color: "#bbb" }}>{topRateTier.rate}%足切り</div><div style={{ fontSize: 14, fontWeight: 700 }}>¥{fmt(targetTop)}</div></div>}
               </div>
             </div>
           )}
@@ -869,11 +869,11 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
   return (
     <>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        出勤数・有休数・欠勤数の組み合わせごとに、最高歩合（{baseTop.rate}%）の足切り（税込）を入力できます。今月の出勤状況と一致した行があれば、その値が自動で反映されます。
+        出勤数・有休数・欠勤数の組み合わせごとに、最高歩合（{baseTop.rate}%）の足切り金額を入力できます。今月の出勤状況と一致した行があれば、その値が自動で反映されます。
       </div>
       {rows.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 28px", gap: 4, fontSize: 10, color: "#999", padding: "0 4px", marginBottom: 4 }}>
-          <div>出勤</div><div>有休</div><div>欠勤</div><div style={{ textAlign: "right" }}>足切り（税込・円）</div><div></div>
+          <div>出勤</div><div>有休</div><div>欠勤</div><div style={{ textAlign: "right" }}>足切り（円）</div><div></div>
         </div>
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
@@ -937,7 +937,7 @@ function CommissionPanel({ commission, saveCommission }) {
   return (
     <>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        足切り（税込・円）と、その金額に達した時の歩合（%）を1行ずつ追加してください。<br />
+        足切り（円）と、その金額に達した時の歩合（%）を1行ずつ追加してください。<br />
         営収が足切り以上になると、対応する歩合に切り替わります。何段階でも作れます。
       </div>
       {tiers.length === 0 ? (
@@ -945,7 +945,7 @@ function CommissionPanel({ commission, saveCommission }) {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 32px", gap: 6, fontSize: 10, color: "#999", padding: "0 4px" }}>
-            <div>足切り（税込・円）</div>
+            <div>足切り（円）</div>
             <div style={{ textAlign: "right" }}>歩合 (%)</div>
             <div></div>
           </div>
