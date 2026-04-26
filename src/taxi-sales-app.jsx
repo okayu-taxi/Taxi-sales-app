@@ -792,7 +792,18 @@ export default function TaxiSalesApp() {
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <button onClick={prevCal} style={navBtn}>‹</button>
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 17, fontWeight: 700 }}>{calYear}年{calMonth + 1}月</div>
+                {(() => {
+                  const onToday = calYear === today.year && calMonth === today.month;
+                  return (
+                    <button
+                      onClick={() => { if (!onToday) { setCalYear(today.year); setCalMonth(today.month); } }}
+                      disabled={onToday}
+                      style={{ background: "none", border: "none", padding: 0, cursor: onToday ? "default" : "pointer", color: "#111", fontSize: 17, fontWeight: 700, textDecoration: onToday ? "none" : "underline", textDecorationStyle: "dotted", textDecorationColor: "#bbb", textUnderlineOffset: 3, fontFamily: "inherit" }}
+                    >
+                      {calYear}年{calMonth + 1}月
+                    </button>
+                  );
+                })()}
                 <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>出勤{calWorkCount}日　有給{calPaidCount}日</div>
               </div>
               <button onClick={nextCal} style={navBtn}>›</button>
