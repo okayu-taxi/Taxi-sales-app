@@ -40,15 +40,8 @@ function getCommissionRate(revenue, conf = DEFAULT_COMMISSION) {
   }
   return rate;
 }
-function toTaxInc(amount) {
-  return Math.ceil(amount * 1.1 / 10) * 10;
-}
 function estimateSalary(revenue, conf = DEFAULT_COMMISSION) {
   return Math.round(revenue * getCommissionRate(revenue, conf) / 100);
-}
-function topTier(conf) {
-  const tiers = sortTiers(conf?.tiers);
-  return tiers.length > 0 ? tiers[tiers.length - 1] : null;
 }
 
 function getDaysInMonth(year, month) { return new Date(year, month + 1, 0).getDate(); }
@@ -1124,12 +1117,9 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
 
 const card = { background: "#fff", border: "1px solid #ebebeb", borderRadius: 14, padding: "16px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.03)" };
 const lbl = { fontSize: 10, color: "#bbb", letterSpacing: 1.5, fontWeight: 700, textTransform: "uppercase" };
-const statBox = { background: "#f5f5f5", borderRadius: 10, padding: "12px 14px" };
-const statLbl = { fontSize: 11, color: "#bbb", marginBottom: 4 };
 const statCard = { background: "#fff", border: "1px solid #ebebeb", borderRadius: 12, padding: "8px 10px", boxShadow: "0 1px 4px rgba(0,0,0,0.03)", display: "flex", flexDirection: "column", gap: 1 };
 const statTitle = { fontSize: 10, color: "#999", fontWeight: 600 };
 const statValue = { fontSize: 18, fontWeight: 800, color: "#111", lineHeight: 1.2, marginTop: 2 };
-const statUnit = { fontSize: 11, fontWeight: 600, color: "#999", marginLeft: 2 };
 const statSub = { fontSize: 10, color: "#bbb", marginTop: 2 };
 const miniBtn = { background: "transparent", border: "1px solid #e5e5e5", borderRadius: 6, color: "#888", fontSize: 10, cursor: "pointer", padding: "2px 7px", lineHeight: 1.2 };
 const inputStyle = { flex: 1, background: "#f5f5f5", border: "1.5px solid #ebebeb", borderRadius: 8, padding: "10px 12px", color: "#111", fontSize: 16, outline: "none" };

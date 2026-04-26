@@ -4,10 +4,7 @@ import {
   onAuthStateChanged,
   signOut,
   GoogleAuthProvider,
-  EmailAuthProvider,
   signInWithPopup,
-  linkWithPopup,
-  linkWithCredential,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
@@ -33,31 +30,10 @@ export const subscribeAuth = (cb) => onAuthStateChanged(auth, cb);
 export const signOutUser = () => signOut(auth);
 
 export async function signInWithGoogle() {
-  const current = auth.currentUser;
-  if (current?.isAnonymous) {
-    try {
-      await linkWithPopup(current, googleProvider);
-      return;
-    } catch (e) {
-      if (e?.code !== "auth/credential-already-in-use") throw e;
-      await signOut(auth);
-    }
-  }
   await signInWithPopup(auth, googleProvider);
 }
 
 export async function signUpWithEmail(email, password) {
-  const current = auth.currentUser;
-  if (current?.isAnonymous) {
-    const credential = EmailAuthProvider.credential(email, password);
-    try {
-      await linkWithCredential(current, credential);
-      return;
-    } catch (e) {
-      if (e?.code !== "auth/credential-already-in-use" && e?.code !== "auth/email-already-in-use") throw e;
-      await signOut(auth);
-    }
-  }
   await createUserWithEmailAndPassword(auth, email, password);
 }
 
