@@ -147,6 +147,10 @@ export default function TaxiSalesApp() {
   const [closingInput, setClosingInput] = useState("");
   const [confirmingReset, setConfirmingReset] = useState(false);
   const swipeRef = useRef(null);
+  const sliderRef = useRef(null);
+  const trackRef = useRef(null);
+  const TABS = ["home", "calendar", "graph", "settings"];
+  const activeIdx = TABS.indexOf(activeTab);
   const [visitedTabs, setVisitedTabs] = useState(() => new Set(["home"]));
   useEffect(() => { setVisitedTabs(prev => prev.has(activeTab) ? prev : new Set([...prev, activeTab])); }, [activeTab]);
 
@@ -478,7 +482,7 @@ export default function TaxiSalesApp() {
   }, [calYear, calMonth, attendance]);
 
   return (
-    <div style={{ minHeight: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", paddingBottom: 80 }}>
+    <div style={{ height: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column" }}>
 
       <div style={{ background: "#fff", padding: "8px 16px 6px", borderBottom: "1px solid #ebebeb", position: "relative" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
@@ -503,7 +507,8 @@ export default function TaxiSalesApp() {
       </div>
 
       <div
-        style={{ padding: "10px 12px" }}
+        ref={sliderRef}
+        style={{ flex: 1, overflow: "hidden", position: "relative" }}
         onTouchStart={(e) => {
           let el = e.target;
           while (el && el !== e.currentTarget) {
@@ -514,24 +519,47 @@ export default function TaxiSalesApp() {
             el = el.parentElement;
           }
           const t = e.touches[0];
-          swipeRef.current = { x: t.clientX, y: t.clientY };
+          swipeRef.current = { x: t.clientX, y: t.clientY, dragging: false, w: sliderRef.current?.clientWidth || 0 };
+          if (trackRef.current) trackRef.current.style.transition = "none";
+        }}
+        onTouchMove={(e) => {
+          const s = swipeRef.current;
+          if (!s) return;
+          const t = e.touches[0];
+          const dx = t.clientX - s.x;
+          const dy = t.clientY - s.y;
+          if (!s.dragging) {
+            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+            if (Math.abs(dx) < Math.abs(dy)) { swipeRef.current = null; if (trackRef.current) trackRef.current.style.transition = "transform 0.25s ease-out"; return; }
+            s.dragging = true;
+          }
+          let drag = dx;
+          if (activeIdx === 0 && drag > 0) drag *= 0.3;
+          if (activeIdx === TABS.length - 1 && drag < 0) drag *= 0.3;
+          if (trackRef.current && s.w > 0) {
+            trackRef.current.style.transform = `translate3d(${-activeIdx * s.w + drag}px, 0, 0)`;
+          }
         }}
         onTouchEnd={(e) => {
           const s = swipeRef.current;
           if (!s) return;
+          swipeRef.current = null;
+          if (trackRef.current) trackRef.current.style.transition = "transform 0.25s ease-out";
+          if (!s.dragging) return;
           const t = e.changedTouches[0];
           const dx = t.clientX - s.x;
-          const dy = t.clientY - s.y;
-          swipeRef.current = null;
-          if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.4) return;
-          const tabs = ["home", "calendar", "graph", "settings"];
-          const idx = tabs.indexOf(activeTab);
-          if (dx < 0 && idx < tabs.length - 1) setActiveTab(tabs[idx + 1]);
-          else if (dx > 0 && idx > 0) setActiveTab(tabs[idx - 1]);
+          const w = s.w || sliderRef.current?.clientWidth || 1;
+          const threshold = w * 0.2;
+          let next = activeIdx;
+          if (dx < -threshold && activeIdx < TABS.length - 1) next = activeIdx + 1;
+          else if (dx > threshold && activeIdx > 0) next = activeIdx - 1;
+          if (trackRef.current) trackRef.current.style.transform = `translate3d(${-next * w}px, 0, 0)`;
+          if (next !== activeIdx) setActiveTab(TABS[next]);
         }}
       >
+        <div ref={trackRef} style={{ display: "flex", width: `${TABS.length * 100}%`, height: "100%", transform: `translate3d(-${activeIdx * (100 / TABS.length)}%, 0, 0)`, transition: "transform 0.25s ease-out", willChange: "transform" }}>
 
-        {visitedTabs.has("home") && <div style={{ display: activeTab === "home" ? "block" : "none" }}>
+        <div style={{ ...tabPanelStyle, order: 1 }}>{visitedTabs.has("home") && <>
 
           {/* 2x2 統計グリッド */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 8 }}>
@@ -628,9 +656,9 @@ export default function TaxiSalesApp() {
               <span style={{ fontSize: 16, fontWeight: 800, color: "#e55" }}>¥{fmt(tollTotal)}</span>
             </div>
           </div>
-        </div>}
+        </>}</div>
 
-        {visitedTabs.has("graph") && <div style={{ display: activeTab === "graph" ? "block" : "none" }}>
+        <div style={{ ...tabPanelStyle, order: 3 }}>{visitedTabs.has("graph") && <>
           {/* 給料推定カード */}
           <div style={card}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
@@ -671,9 +699,9 @@ export default function TaxiSalesApp() {
             <div style={{ ...lbl, marginBottom: 12 }}>最高歩合の出勤条件</div>
             <AttendanceTablePanel commission={commission} periodAtt={periodAtt} saveAttendanceTable={saveAttendanceTable} />
           </div>
-        </div>}
+        </>}</div>
 
-        {visitedTabs.has("calendar") && <div style={{ display: activeTab === "calendar" ? "block" : "none" }}> {/* 出番表 */}
+        <div style={{ ...tabPanelStyle, order: 2 }}>{visitedTabs.has("calendar") && <> {/* 出番表 */}
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: "#aaa", lineHeight: 1.8 }}>
               タップするたびに切り替わります：<br />
@@ -744,10 +772,10 @@ export default function TaxiSalesApp() {
               </>
             )}
           </div>
-        </div>}
+        </>}</div>
 
-        {visitedTabs.has("settings") && (
-          <div style={{ display: activeTab === "settings" ? "block" : "none" }}>
+        <div style={{ ...tabPanelStyle, order: 4 }}>{visitedTabs.has("settings") && (
+          <>
 
             <div style={card}>
               <div style={{ ...lbl, marginBottom: 12 }}>設定リセット</div>
@@ -794,8 +822,9 @@ export default function TaxiSalesApp() {
               }} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>最新版に更新する</button>
               <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>キャッシュとService Workerを破棄してから再読み込みします。</div>
             </div>
-          </div>
-        )}
+          </>
+        )}</div>
+        </div>
       </div>
     </div>
   );
@@ -1023,3 +1052,4 @@ const inputStyle = { flex: 1, background: "#f5f5f5", border: "1.5px solid #ebebe
 const primaryBtn = { background: "#111", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "10px 16px" };
 const ghostBtn = { background: "transparent", border: "1.5px solid #e0e0e0", borderRadius: 8, color: "#888", fontSize: 12, cursor: "pointer", padding: "6px 12px" };
 const navBtn = { background: "none", border: "none", color: "#ccc", fontSize: 26, cursor: "pointer", padding: "0 8px" };
+const tabPanelStyle = { flex: "0 0 25%", width: "25%", height: "100%", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "10px 12px", boxSizing: "border-box" };
