@@ -463,13 +463,20 @@ export default function TaxiSalesApp() {
 
   const prevPeriod = useCallback(() => { if (curMonth === 0) { setCurMonth(11); setCurYear(y => y - 1); } else setCurMonth(m => m - 1); }, [curMonth]);
   const nextPeriod = useCallback(() => { if (curMonth === 11) { setCurMonth(0); setCurYear(y => y + 1); } else setCurMonth(m => m + 1); }, [curMonth]);
+  const calTrackRef = useRef(null);
+  const calContainerRef = useRef(null);
+  const calSettleTimerRef = useRef(null);
+
   const prevCal = useCallback(() => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }, [calMonth]);
   const nextCal = useCallback(() => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }, [calMonth]);
 
   const onCalTouchStart = useCallback((e) => {
     e.stopPropagation();
+    if (calSettleTimerRef.current) return;
     const t = e.touches[0];
-    calSwipeRef.current = { x: t.clientX, y: t.clientY, dragging: false };
+    const w = calContainerRef.current?.clientWidth || 0;
+    calSwipeRef.current = { x: t.clientX, y: t.clientY, dragging: false, w };
+    if (calTrackRef.current) calTrackRef.current.style.transition = "none";
   }, []);
   const onCalTouchMove = useCallback((e) => {
     const s = calSwipeRef.current;
@@ -479,38 +486,69 @@ export default function TaxiSalesApp() {
     const dy = t.clientY - s.y;
     if (!s.dragging) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      if (Math.abs(dx) < Math.abs(dy)) { calSwipeRef.current = null; return; }
+      if (Math.abs(dx) < Math.abs(dy)) {
+        calSwipeRef.current = null;
+        if (calTrackRef.current) calTrackRef.current.style.transition = "transform 0.25s ease-out";
+        return;
+      }
       s.dragging = true;
     }
     e.stopPropagation();
+    if (calTrackRef.current && s.w > 0) {
+      calTrackRef.current.style.transform = `translate3d(${-s.w + dx}px, 0, 0)`;
+    }
   }, []);
   const onCalTouchEnd = useCallback((e) => {
     const s = calSwipeRef.current;
     if (!s) return;
     calSwipeRef.current = null;
+    const track = calTrackRef.current;
+    if (track) track.style.transition = "transform 0.25s ease-out";
     if (!s.dragging) return;
     e.stopPropagation();
     const t = e.changedTouches[0];
     const dx = t.clientX - s.x;
-    if (Math.abs(dx) < 60) return;
-    if (dx < 0) nextCal(); else prevCal();
+    const w = s.w || calContainerRef.current?.clientWidth || 1;
+    const threshold = w * 0.2;
+    let dir = 0;
+    if (dx < -threshold) dir = 1;
+    else if (dx > threshold) dir = -1;
+    if (track) {
+      track.style.transform = `translate3d(${-w + dir * w}px, 0, 0)`;
+    }
+    if (dir !== 0) {
+      calSettleTimerRef.current = window.setTimeout(() => {
+        calSettleTimerRef.current = null;
+        if (calTrackRef.current) {
+          calTrackRef.current.style.transition = "none";
+          calTrackRef.current.style.transform = `translate3d(${-w}px, 0, 0)`;
+        }
+        if (dir > 0) nextCal(); else prevCal();
+      }, 250);
+    }
   }, [prevCal, nextCal]);
 
   const fmt = (n) => n.toLocaleString("ja-JP");
   const closingLabel = closingDay === 0 ? "末日締め" : `毎月${closingDay}日締め`;
 
-  const { calDays, calFirst, calCells, calWorkCount, calPaidCount } = useMemo(() => {
-    const calDays = getDaysInMonth(calYear, calMonth);
-    const calFirst = getFirstDayOfWeek(calYear, calMonth);
-    const calCells = [...Array(calFirst).fill(null), ...Array.from({length: calDays}, (_, i) => i + 1)];
-    let calWorkCount = 0, calPaidCount = 0;
-    Array.from({length: calDays}, (_, i) => i + 1).forEach(d => {
-      const v = attendance[`${calYear}-${calMonth}-${d}`];
-      if (v === 'work') calWorkCount++;
-      else if (v === 'paid_leave') calPaidCount++;
-    });
-    return { calDays, calFirst, calCells, calWorkCount, calPaidCount };
+  const calMonths = useMemo(() => {
+    const monthMeta = (y, m) => {
+      const days = getDaysInMonth(y, m);
+      const first = getFirstDayOfWeek(y, m);
+      const cells = [...Array(first).fill(null), ...Array.from({length: days}, (_, i) => i + 1)];
+      let work = 0, paid = 0;
+      for (let d = 1; d <= days; d++) {
+        const v = attendance[`${y}-${m}-${d}`];
+        if (v === 'work') work++;
+        else if (v === 'paid_leave') paid++;
+      }
+      return { y, m, days, first, cells, work, paid };
+    };
+    const prev = calMonth === 0 ? { y: calYear - 1, m: 11 } : { y: calYear, m: calMonth - 1 };
+    const next = calMonth === 11 ? { y: calYear + 1, m: 0 } : { y: calYear, m: calMonth + 1 };
+    return [monthMeta(prev.y, prev.m), monthMeta(calYear, calMonth), monthMeta(next.y, next.m)];
   }, [calYear, calMonth, attendance]);
+  const { cells: calCells, first: calFirst, work: calWorkCount, paid: calPaidCount } = calMonths[1];
 
   return (
     <div style={{ height: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column" }}>
@@ -762,14 +800,20 @@ export default function TaxiSalesApp() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", marginBottom: 4 }}>
               {WEEKDAYS.map((w, i) => <div key={w} style={{ textAlign: "center", fontSize: 11, fontWeight: 600, paddingBottom: 8, color: i===0?"#e55":i===6?"#55a":"#bbb" }}>{w}</div>)}
             </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
-              {calCells.map((day, idx) => {
-                if (!day) return <div key={`e-${idx}`} />;
-                const isToday = calYear===today.year && calMonth===today.month && day===today.day;
-                const state = getAttState(calYear, calMonth, day);
-                const dow = (calFirst + day - 1) % 7;
-                return <CalDay key={day} day={day} isToday={isToday} state={state} dow={dow} calYear={calYear} calMonth={calMonth} onToggle={toggleAtt} />;
-              })}
+            <div ref={calContainerRef} style={{ overflow: "hidden", position: "relative" }}>
+              <div ref={calTrackRef} style={{ display: "flex", transform: "translate3d(-100%, 0, 0)", transition: "transform 0.25s ease-out", willChange: "transform" }}>
+                {calMonths.map((mo) => (
+                  <div key={`${mo.y}-${mo.m}`} style={{ flex: "0 0 100%", display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+                    {mo.cells.map((day, idx) => {
+                      if (!day) return <div key={`e-${idx}`} />;
+                      const isToday = mo.y===today.year && mo.m===today.month && day===today.day;
+                      const state = getAttState(mo.y, mo.m, day);
+                      const dow = (mo.first + day - 1) % 7;
+                      return <CalDay key={day} day={day} isToday={isToday} state={state} dow={dow} calYear={mo.y} calMonth={mo.m} onToggle={toggleAtt} />;
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
             <div style={{ display: "flex", gap: 12, marginTop: 16, paddingTop: 14, borderTop: "1px solid #f0f0f0", justifyContent: "center", flexWrap: "wrap" }}>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 18, height: 18, background: "#111", borderRadius: 5 }} />出勤</div>
