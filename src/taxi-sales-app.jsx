@@ -860,7 +860,7 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
       <button onClick={() => setExpanded(true)} style={{ width: "100%", textAlign: "left", background: "#f5f5f5", border: "none", borderRadius: 10, padding: "12px 14px", cursor: "pointer", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
           <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{stored.length > 0 ? `${stored.length}件を設定済` : "未設定"}</div>
-          <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{matched ? `今月は ¥${Number(matched.target).toLocaleString()} を適用中` : "今月に一致する行なし（基準値を使用）"}</div>
+          <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{stored.length === 0 ? "未使用 ・ 足切り設定のみで計算中" : matched ? `今月は ¥${Number(matched.target).toLocaleString()} を適用中` : "今月の出勤に一致する行なし ・ 足切り設定の値を使用"}</div>
         </div>
         <span style={{ fontSize: 12, color: "#3399ff", fontWeight: 700 }}>編集 ▸</span>
       </button>
@@ -868,8 +868,9 @@ function AttendanceTablePanel({ commission, periodAtt, saveAttendanceTable }) {
   }
   return (
     <>
-      <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        出勤数・有休数・欠勤数の組み合わせごとに、最高歩合（{baseTop.rate}%）の足切り金額を入力できます。今月の出勤状況と一致した行があれば、その値が自動で反映されます。
+      <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7, padding: "8px 10px", background: "#FFF8E0", border: "1px solid #F6BE00", borderRadius: 8 }}>
+        ⚠ <b>任意設定です。</b> 出勤日数によって最高歩合（{baseTop.rate}%）の足切りが変わる会社のみ使ってください。<br />
+        何も登録しなければ <b>「足切り設定」の値だけ</b> で計算されます。より細かく管理したい場合のみ、出勤数・有休数・欠勤数別の足切りを下に追加してください。
       </div>
       {rows.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1.6fr 28px", gap: 4, fontSize: 10, color: "#999", padding: "0 4px", marginBottom: 4 }}>
