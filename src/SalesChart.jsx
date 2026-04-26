@@ -35,7 +35,21 @@ export default function SalesChart({ chartData, fmt, onPointClick, todayIndex })
         onClick={handleClick}
       >
         <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
-        <XAxis dataKey="label" tick={{ fill: "#999", fontSize: 11 }} stroke="#eee" interval={0} />
+        <XAxis
+          dataKey="label"
+          stroke="#eee"
+          interval={0}
+          tick={(props) => {
+            const { x, y, payload, index } = props;
+            const datum = chartData[index];
+            return (
+              <g style={{ cursor: "pointer" }} onClick={() => datum && onPointClick && onPointClick(datum.dateKey)}>
+                <rect x={x - DAY_WIDTH / 2} y={y - 14} width={DAY_WIDTH} height={32} fill="transparent" />
+                <text x={x} y={y + 4} textAnchor="middle" fill="#999" fontSize={11}>{payload.value}</text>
+              </g>
+            );
+          }}
+        />
         <YAxis yAxisId="sales" hide domain={[0, "dataMax + 5000"]} />
         <YAxis yAxisId="toll" orientation="right" hide domain={[0, "dataMax + 500"]} />
         <Tooltip
