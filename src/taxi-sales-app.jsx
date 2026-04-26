@@ -888,7 +888,8 @@ export default function TaxiSalesApp() {
             </div>
 
             <div style={card}>
-              <div style={{ ...lbl, marginBottom: 12 }}>最新版に更新</div>
+              <div style={{ ...lbl, marginBottom: 12 }}>再読み込み</div>
+              <div style={{ fontSize: 12, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>動作がおかしい時・データが反映されない時に押してください。</div>
               <button onClick={async () => {
                 try {
                   if ('serviceWorker' in navigator) {
@@ -901,8 +902,7 @@ export default function TaxiSalesApp() {
                   }
                 } catch {}
                 window.location.reload();
-              }} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>最新版に更新する</button>
-              <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>キャッシュとService Workerを破棄してから再読み込みします。</div>
+              }} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>再読み込みする</button>
             </div>
           </>
         )}</div>
