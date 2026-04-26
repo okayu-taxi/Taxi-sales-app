@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo } from "react";
 import { getPat, setPat, getGistId, setGistId, validatePat, findExistingGist, createGist, pushToGist, pullFromGist } from "./gistSync";
-import { subscribeAuth, signInWithGoogle, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
+import { subscribeAuth, signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
 
 const LazyChart = lazy(() => import("./SalesChart"));
 
@@ -82,6 +82,25 @@ function getDatesInPeriod(period) {
 }
 
 const WEEKDAYS = ["日","月","火","水","木","金","土"];
+
+function authErrorMsg(e) {
+  switch (e?.code) {
+    case "auth/invalid-email": return "メールアドレスの形式が正しくありません";
+    case "auth/missing-email": return "メールアドレスを入力してください";
+    case "auth/missing-password": return "パスワードを入力してください";
+    case "auth/weak-password": return "パスワードは6文字以上必要です";
+    case "auth/email-already-in-use": return "このメールアドレスは既に登録されています";
+    case "auth/user-not-found": return "アカウントが見つかりません";
+    case "auth/wrong-password":
+    case "auth/invalid-credential": return "メールアドレスまたはパスワードが違います";
+    case "auth/too-many-requests": return "試行回数が多すぎます。しばらくしてからお試しください";
+    case "auth/network-request-failed": return "ネットワークに接続できませんでした";
+    case "auth/popup-blocked": return "ポップアップがブロックされました。設定をご確認ください";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request": return "サインインがキャンセルされました";
+    default: return e?.message || "エラーが発生しました";
+  }
+}
 
 function getNow() { const n = new Date(); return { year: n.getFullYear(), month: n.getMonth(), day: n.getDate() }; }
 function getCorrectPeriod(closingDay) {
@@ -368,7 +387,32 @@ export default function TaxiSalesApp() {
         setFbStatus({ kind: "idle", msg: "" });
         return;
       }
-      setFbStatus({ kind: "error", msg: `サインイン失敗: ${e.message}` });
+      setFbStatus({ kind: "error", msg: `サインイン失敗: ${authErrorMsg(e)}` });
+    }
+  }, []);
+  const fbSignInEmail = useCallback(async (email, password) => {
+    setFbStatus({ kind: "syncing", msg: "サインイン中…" });
+    try {
+      await signInWithEmail(email, password);
+    } catch (e) {
+      setFbStatus({ kind: "error", msg: authErrorMsg(e) });
+      throw e;
+    }
+  }, []);
+  const fbSignUpEmail = useCallback(async (email, password) => {
+    setFbStatus({ kind: "syncing", msg: "アカウント作成中…" });
+    try {
+      await signUpWithEmail(email, password);
+    } catch (e) {
+      setFbStatus({ kind: "error", msg: authErrorMsg(e) });
+      throw e;
+    }
+  }, []);
+  const fbResetPassword = useCallback(async (email) => {
+    try {
+      await resetPassword(email);
+    } catch (e) {
+      throw new Error(authErrorMsg(e));
     }
   }, []);
   const fbSignOut = useCallback(async () => {
@@ -878,8 +922,8 @@ export default function TaxiSalesApp() {
             </div>
 
             <div style={card}>
-              <div style={{ ...lbl, marginBottom: 12 }}>クラウド同期</div>
-              <FirebaseSyncPanel user={fbUser} status={fbStatus} signIn={fbSignIn} signOut={fbSignOut} />
+              <div style={{ ...lbl, marginBottom: 12 }}>ログイン</div>
+              <FirebaseSyncPanel user={fbUser} status={fbStatus} signInGoogle={fbSignIn} signUpEmail={fbSignUpEmail} signInEmail={fbSignInEmail} resetPassword={fbResetPassword} signOut={fbSignOut} />
             </div>
 
             <div style={card}>
@@ -1053,7 +1097,7 @@ function CommissionPanel({ commission, saveCommission }) {
   );
 }
 
-function FirebaseSyncPanel({ user, status, signIn, signOut }) {
+function FirebaseSyncPanel({ user, status, signInGoogle, signUpEmail, signInEmail, resetPassword, signOut }) {
   const statusColor = status.kind === "error" ? "#e55" : status.kind === "ok" ? "#3399ff" : status.kind === "syncing" ? "#c8900a" : "#bbb";
   if (user) {
     const name = user.displayName || user.email || user.uid.slice(0, 12);
@@ -1078,20 +1122,101 @@ function FirebaseSyncPanel({ user, status, signIn, signOut }) {
     );
   }
   return (
+    <SignedOutPanel status={status} signInGoogle={signInGoogle} signUpEmail={signUpEmail} signInEmail={signInEmail} resetPassword={resetPassword} statusColor={statusColor} />
+  );
+}
+
+function SignedOutPanel({ status, signInGoogle, signUpEmail, signInEmail, resetPassword, statusColor }) {
+  const [mode, setMode] = useState("signin");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [resetMsg, setResetMsg] = useState("");
+
+  const submit = async (e) => {
+    e?.preventDefault();
+    if (!email.trim() || !password) return;
+    setBusy(true);
+    setResetMsg("");
+    try {
+      if (mode === "signup") await signUpEmail(email.trim(), password);
+      else await signInEmail(email.trim(), password);
+      setEmail(""); setPassword("");
+    } catch {} finally { setBusy(false); }
+  };
+  const handleReset = async () => {
+    if (!email.trim()) { setResetMsg("メールアドレスを入力してから押してください"); return; }
+    setBusy(true);
+    try {
+      await resetPassword(email.trim());
+      setResetMsg(`${email.trim()} に再設定メールを送信しました`);
+    } catch (e) {
+      setResetMsg(e.message || "送信に失敗しました");
+    } finally { setBusy(false); }
+  };
+
+  return (
     <>
-      <div style={{ fontSize: 12, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        Google アカウントでサインインすると、入力データが自動的にクラウドへバックアップされます。再インストールや機種変更でも同じアカウントでサインインすれば復元できます。
+      <div style={{ fontSize: 12, color: "#999", marginBottom: 12, lineHeight: 1.7 }}>
+        ログインすると、入力データが自動的にクラウドへバックアップされます。再インストールや機種変更でも同じアカウントでログインすれば復元できます。
       </div>
-      <button onClick={signIn} style={{ width: "100%", padding: "12px", background: "#fff", border: "1px solid #dadce0", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 14, fontWeight: 500, color: "#3c4043" }}>
+
+      <form onSubmit={submit}>
+        <input
+          type="email"
+          inputMode="email"
+          autoComplete="email"
+          placeholder="メールアドレス"
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          style={{ ...inputStyle, width: "100%", marginBottom: 8, boxSizing: "border-box" }}
+        />
+        <input
+          type="password"
+          autoComplete={mode === "signup" ? "new-password" : "current-password"}
+          placeholder={mode === "signup" ? "パスワード（6文字以上）" : "パスワード"}
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          style={{ ...inputStyle, width: "100%", marginBottom: 8, boxSizing: "border-box" }}
+        />
+        <button
+          type="submit"
+          disabled={busy || !email.trim() || !password}
+          style={{ ...primaryBtn, width: "100%", padding: "13px", opacity: busy || !email.trim() || !password ? 0.5 : 1 }}
+        >
+          {busy ? "処理中…" : (mode === "signup" ? "新規登録する" : "ログイン")}
+        </button>
+      </form>
+
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 10, fontSize: 12 }}>
+        <button onClick={() => { setMode(mode === "signup" ? "signin" : "signup"); setResetMsg(""); }} style={{ background: "none", border: "none", color: "#3399ff", cursor: "pointer", padding: 0, fontSize: 12 }}>
+          {mode === "signup" ? "ログインに戻る" : "新規登録"}
+        </button>
+        {mode === "signin" && (
+          <button onClick={handleReset} disabled={busy} style={{ background: "none", border: "none", color: "#999", cursor: "pointer", padding: 0, fontSize: 12 }}>
+            パスワードを忘れた場合
+          </button>
+        )}
+      </div>
+
+      {resetMsg && <div style={{ fontSize: 11, color: "#3399ff", marginTop: 8, lineHeight: 1.6 }}>{resetMsg}</div>}
+      {status.msg && <div style={{ fontSize: 11, color: statusColor, marginTop: 8, fontWeight: 600 }}>{status.msg}</div>}
+
+      <div style={{ display: "flex", alignItems: "center", margin: "16px 0", color: "#ccc", fontSize: 11 }}>
+        <div style={{ flex: 1, height: 1, background: "#ebebeb" }} />
+        <div style={{ padding: "0 10px" }}>または</div>
+        <div style={{ flex: 1, height: 1, background: "#ebebeb" }} />
+      </div>
+
+      <button onClick={signInGoogle} style={{ width: "100%", padding: "12px", background: "#fff", border: "1px solid #dadce0", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 14, fontWeight: 500, color: "#3c4043" }}>
         <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
           <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
           <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
           <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
           <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
         </svg>
-        Google でサインイン
+        Google でログイン
       </button>
-      {status.msg && <div style={{ fontSize: 11, color: statusColor, marginTop: 8, fontWeight: 600 }}>{status.msg}</div>}
     </>
   );
 }
