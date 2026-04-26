@@ -830,7 +830,7 @@ export default function TaxiSalesApp() {
               <div style={{ fontSize: 11, color: "#111", fontWeight: 700 }}>出勤</div>
               <div style={{ fontSize: 11, color: "#4a90d9", fontWeight: 700 }}>有給</div>
               <div style={{ fontSize: 11, color: "#e55", fontWeight: 700 }}>欠勤</div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 14, height: 14, borderRadius: "50%", background: "#F6BE00" }} />今日</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 14, height: 14, borderRadius: "50%", background: "#111" }} />今日</div>
             </div>
           </div>
 
@@ -1183,10 +1183,10 @@ function SignedOutPanel({ status, signInGoogle, signUpEmail, signInEmail, resetP
 
 const STATE_LABEL = { work: "出勤", paid_leave: "有給", absent: "欠勤" };
 const STATE_COLOR = { work: "#111", paid_leave: "#4a90d9", absent: "#e55" };
-const TODAY_COLOR = "#F6BE00";
+const TODAY_COLOR = "#111";
 
 const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) => {
-  const numColor = isToday ? "#111" : dow === 0 ? "#e55" : dow === 6 ? "#55a" : "#333";
+  const numColor = isToday ? "#fff" : dow === 0 ? "#e55" : dow === 6 ? "#55a" : "#333";
   return (
     <button
       onClick={() => onToggle(calYear, calMonth, day)}
