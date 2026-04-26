@@ -514,7 +514,7 @@ export default function TaxiSalesApp() {
     if (dx < -threshold) dir = 1;
     else if (dx > threshold) dir = -1;
     if (track) {
-      track.style.transform = `translate3d(${-w + dir * w}px, 0, 0)`;
+      track.style.transform = `translate3d(${-w - dir * w}px, 0, 0)`;
     }
     if (dir !== 0) {
       calSettleTimerRef.current = window.setTimeout(() => {
