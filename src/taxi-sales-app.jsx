@@ -696,7 +696,7 @@ export default function TaxiSalesApp() {
 
           {/* 最高歩合のための出勤日数設定 */}
           <div style={card}>
-            <div style={{ ...lbl, marginBottom: 12 }}>最高歩合の出勤条件</div>
+            <div style={{ ...lbl, marginBottom: 12 }}>足切り設定 (出勤日数別)</div>
             <AttendanceTablePanel commission={commission} periodAtt={periodAtt} saveAttendanceTable={saveAttendanceTable} />
           </div>
         </>}</div>
