@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo } from "react";
 import { getPat, setPat, getGistId, setGistId, validatePat, findExistingGist, createGist, pushToGist, pullFromGist } from "./gistSync";
+import { subscribeAuth, signInAnon, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
 
 const LazyChart = lazy(() => import("./SalesChart"));
 
@@ -306,6 +307,67 @@ export default function TaxiSalesApp() {
     }
   }, [pat, gistId, data]);
 
+  // ── Firebase sync ──
+  const [fbUser, setFbUser] = useState(null);
+  const [fbStatus, setFbStatus] = useState({ kind: "idle", msg: "" });
+  const [fbReady, setFbReady] = useState(false);
+  const lastFbPushedRef = useRef(null);
+
+  useEffect(() => {
+    const unsub = subscribeAuth(async (user) => {
+      setFbUser(user);
+      if (!user) { setFbReady(false); lastFbPushedRef.current = null; return; }
+      setFbStatus({ kind: "syncing", msg: "サーバから取得中…" });
+      try {
+        const remote = await pullFromFirestore(user.uid);
+        const localRaw = localStorage.getItem(STORAGE_KEY);
+        const local = localRaw ? JSON.parse(localRaw) : null;
+        const localEmpty = !local || ((Object.keys(local.periods || {}).length === 0) && (Object.keys(local.attendance || {}).length === 0));
+        if (remote?.data && localEmpty) {
+          const migrated = migrateData(remote.data);
+          setData(migrated);
+          lastFbPushedRef.current = JSON.stringify(migrated);
+          setFbStatus({ kind: "ok", msg: "サーバから復元しました" });
+        } else {
+          lastFbPushedRef.current = JSON.stringify(local);
+          setFbStatus({ kind: "ok", msg: `同期済 ${new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}` });
+        }
+      } catch (e) {
+        setFbStatus({ kind: "error", msg: `取得失敗: ${e.message}` });
+      } finally {
+        setFbReady(true);
+      }
+    });
+    return unsub;
+  }, []);
+
+  useEffect(() => {
+    if (!fbUser || !fbReady) return;
+    if (isFirstSaveRef.current) return;
+    const json = JSON.stringify(data);
+    if (lastFbPushedRef.current === json) return;
+    const t = setTimeout(async () => {
+      setFbStatus({ kind: "syncing", msg: "同期中…" });
+      try {
+        await pushToFirestore(fbUser.uid, data);
+        lastFbPushedRef.current = json;
+        setFbStatus({ kind: "ok", msg: `同期済 ${new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}` });
+      } catch (e) {
+        setFbStatus({ kind: "error", msg: `同期失敗: ${e.message}` });
+      }
+    }, 2000);
+    return () => clearTimeout(t);
+  }, [data, fbUser, fbReady]);
+
+  const fbSignIn = useCallback(async () => {
+    setFbStatus({ kind: "syncing", msg: "サインイン中…" });
+    try { await signInAnon(); } catch (e) { setFbStatus({ kind: "error", msg: `サインイン失敗: ${e.message}` }); }
+  }, []);
+  const fbSignOut = useCallback(async () => {
+    if (!window.confirm("サインアウトします。サーバ上のデータは残ります。")) return;
+    try { await signOutUser(); } catch {}
+  }, []);
+
   useEffect(() => {
     const onPageShow = () => {
       const { year, month } = getCorrectPeriod(readClosingDay());
@@ -497,11 +559,14 @@ export default function TaxiSalesApp() {
           </div>
           <button onClick={nextPeriod} style={navBtn}>›</button>
         </div>
-        {pat && gistId && (
-          <div style={{ position: "absolute", right: 8, top: 4, fontSize: 9, color: syncStatus.kind === "error" ? "#e55" : syncStatus.kind === "syncing" ? "#c8900a" : "#3399ff", fontWeight: 600 }}>
-            {syncStatus.kind === "syncing" ? "⟳" : syncStatus.kind === "error" ? "⚠" : "☁︎"}
-          </div>
-        )}
+        {(fbUser || (pat && gistId)) && (() => {
+          const s = fbUser ? fbStatus : syncStatus;
+          return (
+            <div style={{ position: "absolute", right: 8, top: 4, fontSize: 9, color: s.kind === "error" ? "#e55" : s.kind === "syncing" ? "#c8900a" : "#3399ff", fontWeight: 600 }}>
+              {s.kind === "syncing" ? "⟳" : s.kind === "error" ? "⚠" : "☁︎"}
+            </div>
+          );
+        })()}
       </div>
 
       <div style={{ display: "flex", background: "#fff", borderBottom: "1px solid #ebebeb" }}>
@@ -805,7 +870,12 @@ export default function TaxiSalesApp() {
             </div>
 
             <div style={card}>
-              <div style={{ ...lbl, marginBottom: 12 }}>クラウド同期 (GitHub Gist)</div>
+              <div style={{ ...lbl, marginBottom: 12 }}>クラウド同期</div>
+              <FirebaseSyncPanel user={fbUser} status={fbStatus} signIn={fbSignIn} signOut={fbSignOut} />
+            </div>
+
+            <div style={card}>
+              <div style={{ ...lbl, marginBottom: 12 }}>クラウド同期 (GitHub Gist・上級者向け)</div>
               <GistSyncPanel pat={pat} gistId={gistId} status={syncStatus} setupSync={setupSync} disconnectSync={disconnectSync} manualSync={manualSync} />
             </div>
 
@@ -971,6 +1041,33 @@ function CommissionPanel({ commission, saveCommission }) {
       {(commission?.tiers?.length > 0 || tiers.length > 0) && (
         <button onClick={() => { if (window.confirm("全ての段階を消去します。よろしいですか？")) { setTiers([]); saveCommission({ tiers: [] }); } }} style={{ ...ghostBtn, width: "100%", padding: "10px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
       )}
+    </>
+  );
+}
+
+function FirebaseSyncPanel({ user, status, signIn, signOut }) {
+  const statusColor = status.kind === "error" ? "#e55" : status.kind === "ok" ? "#3399ff" : status.kind === "syncing" ? "#c8900a" : "#bbb";
+  if (user) {
+    return (
+      <>
+        <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRadius: 10, marginBottom: 10 }}>
+          <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4 }}>サインイン中</div>
+          <div style={{ fontSize: 12, fontFamily: "monospace", color: "#333", wordBreak: "break-all" }}>{user.isAnonymous ? "匿名アカウント" : (user.email || user.displayName || user.uid.slice(0, 12))}</div>
+          <div style={{ fontSize: 10, color: "#bbb", marginTop: 4 }}>UID: {user.uid.slice(0, 16)}…</div>
+          <div style={{ fontSize: 11, color: statusColor, marginTop: 6, fontWeight: 600 }}>{status.msg || "待機中"}</div>
+        </div>
+        <button onClick={signOut} style={{ ...ghostBtn, width: "100%", padding: "13px", color: "#e55", borderColor: "#f5c8c8" }}>サインアウト</button>
+        <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>データ変更後 2 秒で自動的にクラウドへ保存されます。別端末で同じアカウントにサインインすると復元できます。</div>
+      </>
+    );
+  }
+  return (
+    <>
+      <div style={{ fontSize: 12, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
+        ワンタップでクラウドにバックアップ。再インストールしても同じアカウントにサインインすればデータが戻ります。
+      </div>
+      <button onClick={signIn} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>匿名でサインイン</button>
+      {status.msg && <div style={{ fontSize: 11, color: statusColor, marginTop: 8, fontWeight: 600 }}>{status.msg}</div>}
     </>
   );
 }
