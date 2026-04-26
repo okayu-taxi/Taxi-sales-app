@@ -161,6 +161,7 @@ export default function TaxiSalesApp() {
   const swipeRef = useRef(null);
   const sliderRef = useRef(null);
   const trackRef = useRef(null);
+  const calSwipeRef = useRef(null);
   const TABS = ["home", "calendar", "graph", "settings"];
   const activeIdx = TABS.indexOf(activeTab);
   const [visitedTabs, setVisitedTabs] = useState(() => new Set(["home"]));
@@ -465,6 +466,36 @@ export default function TaxiSalesApp() {
   const prevCal = useCallback(() => { if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); } else setCalMonth(m => m - 1); }, [calMonth]);
   const nextCal = useCallback(() => { if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); } else setCalMonth(m => m + 1); }, [calMonth]);
 
+  const onCalTouchStart = useCallback((e) => {
+    e.stopPropagation();
+    const t = e.touches[0];
+    calSwipeRef.current = { x: t.clientX, y: t.clientY, dragging: false };
+  }, []);
+  const onCalTouchMove = useCallback((e) => {
+    const s = calSwipeRef.current;
+    if (!s) return;
+    const t = e.touches[0];
+    const dx = t.clientX - s.x;
+    const dy = t.clientY - s.y;
+    if (!s.dragging) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      if (Math.abs(dx) < Math.abs(dy)) { calSwipeRef.current = null; return; }
+      s.dragging = true;
+    }
+    e.stopPropagation();
+  }, []);
+  const onCalTouchEnd = useCallback((e) => {
+    const s = calSwipeRef.current;
+    if (!s) return;
+    calSwipeRef.current = null;
+    if (!s.dragging) return;
+    e.stopPropagation();
+    const t = e.changedTouches[0];
+    const dx = t.clientX - s.x;
+    if (Math.abs(dx) < 60) return;
+    if (dx < 0) nextCal(); else prevCal();
+  }, [prevCal, nextCal]);
+
   const fmt = (n) => n.toLocaleString("ja-JP");
   const closingLabel = closingDay === 0 ? "末日締め" : `毎月${closingDay}日締め`;
 
@@ -719,7 +750,7 @@ export default function TaxiSalesApp() {
               </div>
             </div>
           )}
-          <div style={card}>
+          <div style={card} onTouchStart={onCalTouchStart} onTouchMove={onCalTouchMove} onTouchEnd={onCalTouchEnd}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <button onClick={prevCal} style={navBtn}>‹</button>
               <div style={{ textAlign: "center" }}>
