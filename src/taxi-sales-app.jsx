@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo } from "react";
-import { getPat, setPat, getGistId, setGistId, validatePat, findExistingGist, createGist, pushToGist, pullFromGist } from "./gistSync";
 import { subscribeAuth, signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
 
 const LazyChart = lazy(() => import("./SalesChart"));
@@ -215,116 +214,6 @@ export default function TaxiSalesApp() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
     if (isFirstSaveRef.current) { isFirstSaveRef.current = false; }
   }, [data]);
-
-  // ── Gist sync ──
-  const [pat, setPatState] = useState(() => getPat());
-  const [gistId, setGistIdState] = useState(() => getGistId());
-  const [syncStatus, setSyncStatus] = useState({ kind: "idle", msg: "" });
-  const [readyToSync, setReadyToSync] = useState(false);
-  const lastPushedRef = useRef(null);
-
-  // Initial pull on mount (only when PAT+gistId exist)
-  useEffect(() => {
-    if (!pat || !gistId) { setReadyToSync(true); return; }
-    let cancelled = false;
-    (async () => {
-      setSyncStatus({ kind: "syncing", msg: "サーバから取得中…" });
-      try {
-        const { data: remote } = await pullFromGist(pat, gistId);
-        if (cancelled) return;
-        const localRaw = localStorage.getItem(STORAGE_KEY);
-        const local = localRaw ? JSON.parse(localRaw) : null;
-        const localEmpty = !local || ((Object.keys(local.periods || {}).length === 0) && (Object.keys(local.attendance || {}).length === 0));
-        if (localEmpty && remote) {
-          const migrated = migrateData(remote);
-          setData(migrated);
-          lastPushedRef.current = JSON.stringify(migrated);
-          setSyncStatus({ kind: "ok", msg: "サーバから復元しました" });
-        } else {
-          lastPushedRef.current = JSON.stringify(local);
-          setSyncStatus({ kind: "ok", msg: `同期済 ${new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}` });
-        }
-      } catch (e) {
-        if (!cancelled) setSyncStatus({ kind: "error", msg: `取得失敗: ${e.message}` });
-      } finally {
-        if (!cancelled) setReadyToSync(true);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, [pat, gistId]);
-
-  // Auto push on data change (debounced 2s)
-  useEffect(() => {
-    if (!pat || !gistId || !readyToSync) return;
-    if (isFirstSaveRef.current) return;
-    const json = JSON.stringify(data);
-    if (lastPushedRef.current === json) return;
-    const t = setTimeout(async () => {
-      setSyncStatus({ kind: "syncing", msg: "同期中…" });
-      try {
-        await pushToGist(pat, gistId, data);
-        lastPushedRef.current = json;
-        setSyncStatus({ kind: "ok", msg: `同期済 ${new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}` });
-      } catch (e) {
-        setSyncStatus({ kind: "error", msg: `同期失敗: ${e.message}` });
-      }
-    }, 2000);
-    return () => clearTimeout(t);
-  }, [data, pat, gistId, readyToSync]);
-
-  const setupSync = useCallback(async (newPat) => {
-    setSyncStatus({ kind: "syncing", msg: "PAT検証中…" });
-    try {
-      await validatePat(newPat);
-      const found = await findExistingGist(newPat);
-      if (found) {
-        const restore = window.confirm(
-          `既存のバックアップが見つかりました。\nGist: ${found.id}\n\n「OK」を押すとサーバから復元します。\n「キャンセル」で現在のローカルデータをサーバに上書きします。`
-        );
-        if (restore) {
-          const { data: remote } = await pullFromGist(newPat, found.id);
-          const migrated = migrateData(remote);
-          setData(migrated);
-          lastPushedRef.current = JSON.stringify(migrated);
-        } else {
-          await pushToGist(newPat, found.id, data);
-          lastPushedRef.current = JSON.stringify(data);
-        }
-        setPat(newPat); setGistId(found.id);
-        setPatState(newPat); setGistIdState(found.id);
-        setSyncStatus({ kind: "ok", msg: "同期設定完了" });
-      } else {
-        const created = await createGist(newPat, data);
-        setPat(newPat); setGistId(created.id);
-        setPatState(newPat); setGistIdState(created.id);
-        lastPushedRef.current = JSON.stringify(data);
-        setSyncStatus({ kind: "ok", msg: "新しい Gist を作成しました" });
-      }
-    } catch (e) {
-      setSyncStatus({ kind: "error", msg: `失敗: ${e.message}` });
-      throw e;
-    }
-  }, [data]);
-
-  const disconnectSync = useCallback(() => {
-    if (!window.confirm("同期を解除します。サーバ上のデータは残ります。")) return;
-    setPat(""); setGistId("");
-    setPatState(""); setGistIdState("");
-    setSyncStatus({ kind: "idle", msg: "" });
-    lastPushedRef.current = null;
-  }, []);
-
-  const manualSync = useCallback(async () => {
-    if (!pat || !gistId) return;
-    setSyncStatus({ kind: "syncing", msg: "手動同期中…" });
-    try {
-      await pushToGist(pat, gistId, data);
-      lastPushedRef.current = JSON.stringify(data);
-      setSyncStatus({ kind: "ok", msg: `同期済 ${new Date().toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}` });
-    } catch (e) {
-      setSyncStatus({ kind: "error", msg: `失敗: ${e.message}` });
-    }
-  }, [pat, gistId, data]);
 
   // ── Firebase sync ──
   const [fbUser, setFbUser] = useState(null);
@@ -611,14 +500,11 @@ export default function TaxiSalesApp() {
           </div>
           <button onClick={nextPeriod} style={navBtn}>›</button>
         </div>
-        {(fbUser || (pat && gistId)) && (() => {
-          const s = fbUser ? fbStatus : syncStatus;
-          return (
-            <div style={{ position: "absolute", right: 8, top: 4, fontSize: 9, color: s.kind === "error" ? "#e55" : s.kind === "syncing" ? "#c8900a" : "#3399ff", fontWeight: 600 }}>
-              {s.kind === "syncing" ? "⟳" : s.kind === "error" ? "⚠" : "☁︎"}
-            </div>
-          );
-        })()}
+        {fbUser && (
+          <div style={{ position: "absolute", right: 8, top: 4, fontSize: 9, color: fbStatus.kind === "error" ? "#e55" : fbStatus.kind === "syncing" ? "#c8900a" : "#3399ff", fontWeight: 600 }}>
+            {fbStatus.kind === "syncing" ? "⟳" : fbStatus.kind === "error" ? "⚠" : "☁︎"}
+          </div>
+        )}
       </div>
 
       <div style={{ display: "flex", background: "#fff", borderBottom: "1px solid #ebebeb" }}>
@@ -927,11 +813,6 @@ export default function TaxiSalesApp() {
             </div>
 
             <div style={card}>
-              <div style={{ ...lbl, marginBottom: 12 }}>クラウド同期 (GitHub Gist・上級者向け)</div>
-              <GistSyncPanel pat={pat} gistId={gistId} status={syncStatus} setupSync={setupSync} disconnectSync={disconnectSync} manualSync={manualSync} />
-            </div>
-
-            <div style={card}>
               <div style={{ ...lbl, marginBottom: 12 }}>再読み込み</div>
               <div style={{ fontSize: 12, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>動作がおかしい時・データが反映されない時に押してください。</div>
               <button onClick={async () => {
@@ -1217,54 +1098,6 @@ function SignedOutPanel({ status, signInGoogle, signUpEmail, signInEmail, resetP
         </svg>
         Google でログイン
       </button>
-    </>
-  );
-}
-
-function GistSyncPanel({ pat, gistId, status, setupSync, disconnectSync, manualSync }) {
-  const [input, setInput] = useState("");
-  const [busy, setBusy] = useState(false);
-  const statusColor = status.kind === "error" ? "#e55" : status.kind === "ok" ? "#3399ff" : status.kind === "syncing" ? "#c8900a" : "#bbb";
-  if (pat && gistId) {
-    return (
-      <>
-        <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRadius: 10, marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4 }}>同期中の Gist</div>
-          <div style={{ fontSize: 12, fontFamily: "monospace", color: "#333", wordBreak: "break-all" }}>{gistId}</div>
-          <div style={{ fontSize: 11, color: statusColor, marginTop: 6, fontWeight: 600 }}>{status.msg || "待機中"}</div>
-        </div>
-        <button onClick={manualSync} style={{ ...primaryBtn, width: "100%", padding: "13px", marginBottom: 8 }}>今すぐ同期</button>
-        <button onClick={disconnectSync} style={{ ...ghostBtn, width: "100%", padding: "13px", color: "#e55", borderColor: "#f5c8c8" }}>同期を解除</button>
-        <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>データ変更後 2 秒で自動的に Gist へ保存されます。別端末では同じ PAT を入力すると復元できます。</div>
-      </>
-    );
-  }
-  return (
-    <>
-      <div style={{ fontSize: 12, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        GitHub の Personal Access Token (gist スコープ) を一度だけ設定すれば、入力のたびに private gist へ自動バックアップされます。
-        <br /><a href="https://github.com/settings/tokens/new?scopes=gist&description=Taxi+Sales+Management" target="_blank" rel="noopener" style={{ color: "#3399ff", textDecoration: "underline" }}>PAT 作成ページを開く</a>
-      </div>
-      <input
-        type="password"
-        placeholder="ghp_xxxxxxxxxxxxxxxx"
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        autoComplete="off"
-        style={{ ...inputStyle, width: "100%", marginBottom: 8, boxSizing: "border-box" }}
-      />
-      <button
-        disabled={busy || !input.trim()}
-        onClick={async () => {
-          setBusy(true);
-          try { await setupSync(input.trim()); setInput(""); } catch {}
-          finally { setBusy(false); }
-        }}
-        style={{ ...primaryBtn, width: "100%", padding: "13px", opacity: busy || !input.trim() ? 0.5 : 1 }}
-      >
-        {busy ? "設定中…" : "同期を有効にする"}
-      </button>
-      {status.msg && <div style={{ fontSize: 11, color: statusColor, marginTop: 8, fontWeight: 600 }}>{status.msg}</div>}
     </>
   );
 }
