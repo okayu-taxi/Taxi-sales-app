@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo } from "react";
 import { getPat, setPat, getGistId, setGistId, validatePat, findExistingGist, createGist, pushToGist, pullFromGist } from "./gistSync";
-import { subscribeAuth, signInAnon, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
+import { subscribeAuth, signInWithGoogle, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
 
 const LazyChart = lazy(() => import("./SalesChart"));
 
@@ -361,7 +361,15 @@ export default function TaxiSalesApp() {
 
   const fbSignIn = useCallback(async () => {
     setFbStatus({ kind: "syncing", msg: "サインイン中…" });
-    try { await signInAnon(); } catch (e) { setFbStatus({ kind: "error", msg: `サインイン失敗: ${e.message}` }); }
+    try {
+      await signInWithGoogle();
+    } catch (e) {
+      if (e?.code === "auth/popup-closed-by-user" || e?.code === "auth/cancelled-popup-request") {
+        setFbStatus({ kind: "idle", msg: "" });
+        return;
+      }
+      setFbStatus({ kind: "error", msg: `サインイン失敗: ${e.message}` });
+    }
   }, []);
   const fbSignOut = useCallback(async () => {
     if (!window.confirm("サインアウトします。サーバ上のデータは残ります。")) return;
@@ -1048,13 +1056,21 @@ function CommissionPanel({ commission, saveCommission }) {
 function FirebaseSyncPanel({ user, status, signIn, signOut }) {
   const statusColor = status.kind === "error" ? "#e55" : status.kind === "ok" ? "#3399ff" : status.kind === "syncing" ? "#c8900a" : "#bbb";
   if (user) {
+    const name = user.displayName || user.email || user.uid.slice(0, 12);
     return (
       <>
-        <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRadius: 10, marginBottom: 10 }}>
-          <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4 }}>サインイン中</div>
-          <div style={{ fontSize: 12, fontFamily: "monospace", color: "#333", wordBreak: "break-all" }}>{user.isAnonymous ? "匿名アカウント" : (user.email || user.displayName || user.uid.slice(0, 12))}</div>
-          <div style={{ fontSize: 10, color: "#bbb", marginTop: 4 }}>UID: {user.uid.slice(0, 16)}…</div>
-          <div style={{ fontSize: 11, color: statusColor, marginTop: 6, fontWeight: 600 }}>{status.msg || "待機中"}</div>
+        <div style={{ padding: "12px 14px", background: "#f5f5f5", borderRadius: 10, marginBottom: 10, display: "flex", alignItems: "center", gap: 12 }}>
+          {user.photoURL && (
+            <img src={user.photoURL} alt="" referrerPolicy="no-referrer" style={{ width: 40, height: 40, borderRadius: "50%", flexShrink: 0 }} />
+          )}
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: 11, color: "#bbb", marginBottom: 2 }}>サインイン中</div>
+            <div style={{ fontSize: 13, color: "#333", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{name}</div>
+            {user.email && user.email !== name && (
+              <div style={{ fontSize: 11, color: "#999", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+            )}
+            <div style={{ fontSize: 11, color: statusColor, marginTop: 4, fontWeight: 600 }}>{status.msg || "待機中"}</div>
+          </div>
         </div>
         <button onClick={signOut} style={{ ...ghostBtn, width: "100%", padding: "13px", color: "#e55", borderColor: "#f5c8c8" }}>サインアウト</button>
         <div style={{ fontSize: 11, color: "#ccc", marginTop: 10, lineHeight: 1.7 }}>データ変更後 2 秒で自動的にクラウドへ保存されます。別端末で同じアカウントにサインインすると復元できます。</div>
@@ -1064,9 +1080,17 @@ function FirebaseSyncPanel({ user, status, signIn, signOut }) {
   return (
     <>
       <div style={{ fontSize: 12, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        ワンタップでクラウドにバックアップ。再インストールしても同じアカウントにサインインすればデータが戻ります。
+        Google アカウントでサインインすると、入力データが自動的にクラウドへバックアップされます。再インストールや機種変更でも同じアカウントでサインインすれば復元できます。
       </div>
-      <button onClick={signIn} style={{ ...primaryBtn, width: "100%", padding: "13px" }}>匿名でサインイン</button>
+      <button onClick={signIn} style={{ width: "100%", padding: "12px", background: "#fff", border: "1px solid #dadce0", borderRadius: 8, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 10, fontSize: 14, fontWeight: 500, color: "#3c4043" }}>
+        <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844a4.14 4.14 0 0 1-1.796 2.716v2.259h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.997 8.997 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.167 6.656 3.58 9 3.58z"/>
+        </svg>
+        Google でサインイン
+      </button>
       {status.msg && <div style={{ fontSize: 11, color: statusColor, marginTop: 8, fontWeight: 600 }}>{status.msg}</div>}
     </>
   );

@@ -1,5 +1,12 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInAnonymously, onAuthStateChanged, signOut } from "firebase/auth";
+import {
+  getAuth,
+  onAuthStateChanged,
+  signOut,
+  GoogleAuthProvider,
+  signInWithPopup,
+  linkWithPopup,
+} from "firebase/auth";
 import { getFirestore, doc, setDoc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -15,9 +22,24 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 
+const googleProvider = new GoogleAuthProvider();
+
 export const subscribeAuth = (cb) => onAuthStateChanged(auth, cb);
-export const signInAnon = () => signInAnonymously(auth);
 export const signOutUser = () => signOut(auth);
+
+export async function signInWithGoogle() {
+  const current = auth.currentUser;
+  if (current?.isAnonymous) {
+    try {
+      await linkWithPopup(current, googleProvider);
+      return;
+    } catch (e) {
+      if (e?.code !== "auth/credential-already-in-use") throw e;
+      await signOut(auth);
+    }
+  }
+  await signInWithPopup(auth, googleProvider);
+}
 
 export async function pushToFirestore(uid, data) {
   await setDoc(doc(db, "users", uid), { data, updatedAt: Date.now() });
