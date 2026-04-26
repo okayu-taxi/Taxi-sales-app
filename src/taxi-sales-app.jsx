@@ -888,7 +888,7 @@ export default function TaxiSalesApp() {
             </div>
 
             <div style={card}>
-              <div style={{ ...lbl, marginBottom: 12 }}>アプリ更新</div>
+              <div style={{ ...lbl, marginBottom: 12 }}>最新版に更新</div>
               <button onClick={async () => {
                 try {
                   if ('serviceWorker' in navigator) {
