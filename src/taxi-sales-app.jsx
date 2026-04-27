@@ -804,7 +804,7 @@ export default function TaxiSalesApp() {
             <div ref={calContainerRef} style={{ overflow: "hidden", position: "relative" }}>
               <div ref={calTrackRef} style={{ display: "flex", transform: "translate3d(-100%, 0, 0)", transition: "transform 0.25s ease-out", willChange: "transform" }}>
                 {calMonths.map((mo) => (
-                  <div key={`${mo.y}-${mo.m}`} style={{ flex: "0 0 100%", display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 3 }}>
+                  <div key={`${mo.y}-${mo.m}`} style={{ flex: "0 0 100%", display: "grid", gridTemplateColumns: "repeat(7,1fr)", gridAutoRows: "44px", gap: 3 }}>
                     {mo.cells.map((day, idx) => {
                       if (!day) return <div key={`e-${idx}`} />;
                       const isToday = mo.y===today.year && mo.m===today.month && day===today.day;
