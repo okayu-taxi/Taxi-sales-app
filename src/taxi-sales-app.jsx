@@ -744,22 +744,20 @@ export default function TaxiSalesApp() {
         </>}</div>
 
         <div style={{ ...tabPanelStyle, order: 2 }}>{visitedTabs.has("calendar") && <> {/* 出番表 */}
-          <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
-            <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#c8900a" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公出</div></div>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#3399ff" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
-              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.dayOff}</div><div style={{ fontSize: 10, color: "#999" }}>休み</div></div>
-            </div>
-          </div>
-          <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>締日</div>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{closingLabel}</div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+            <div style={{ ...card, flex: 1, padding: "12px 14px", marginBottom: 0 }}>
+              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 8px" }}>
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800, color: "#111" }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800, color: "#c8900a" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公出</div></div>
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800, color: "#3399ff" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 16, fontWeight: 800, color: "#e55" }}>{periodAtt.dayOff}</div><div style={{ fontSize: 10, color: "#999" }}>休み</div></div>
               </div>
-              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12, flexShrink: 0 }}>変更</button>
+            </div>
+            <div style={{ ...card, flex: 1, padding: "12px 14px", marginBottom: 0, display: "flex", flexDirection: "column" }}>
+              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>締日</div>
+              <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 10 }}>{closingLabel}</div>
+              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12, alignSelf: "flex-start", marginTop: "auto" }}>変更</button>
             </div>
           </div>
           <div style={card} onTouchStart={onCalTouchStart} onTouchMove={onCalTouchMove} onTouchEnd={onCalTouchEnd}>
