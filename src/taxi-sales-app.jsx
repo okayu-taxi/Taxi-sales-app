@@ -747,14 +747,14 @@ export default function TaxiSalesApp() {
         <div style={{ ...tabPanelStyle, order: 2 }}>{visitedTabs.has("calendar") && <> {/* 出番表 */}
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: "#aaa", lineHeight: 1.8 }}>
-              日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出勤</span>・<span style={{ color: "#4a90d9", fontWeight: 700 }}>有給</span>・<span style={{ color: "#e55", fontWeight: 700 }}>欠勤</span>を選択
+              日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出番</span>・<span style={{ color: "#4a90d9", fontWeight: 700 }}>有給</span>・<span style={{ color: "#e55", fontWeight: 700 }}>欠勤</span>を選択
             </p>
           </div>
           {(periodAtt.work > 0 || periodAtt.paid > 0 || periodAtt.absent > 0) && (
             <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出勤状況</div>
+              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
               <div style={{ display: "flex", gap: 16 }}>
-                <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出勤</div></div>
+                <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#4a90d9" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>欠勤</div></div>
                 {topRateTier && targetTop > 0 && <div style={{ marginLeft: "auto", textAlign: "right" }}><div style={{ fontSize: 11, color: "#bbb" }}>{topRateTier.rate}%足切り</div><div style={{ fontSize: 14, fontWeight: 700 }}>¥{fmt(targetTop)}</div></div>}
@@ -777,7 +777,7 @@ export default function TaxiSalesApp() {
                     </button>
                   );
                 })()}
-                <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>出勤{calWorkCount}日　有給{calPaidCount}日</div>
+                <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>出番{calWorkCount}日　有給{calPaidCount}日</div>
               </div>
               <button onClick={nextCal} style={navBtn}>›</button>
             </div>
@@ -800,7 +800,7 @@ export default function TaxiSalesApp() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 12, marginTop: 16, paddingTop: 14, borderTop: "1px solid #f0f0f0", justifyContent: "center", flexWrap: "wrap" }}>
-              <div style={{ fontSize: 11, color: "#111", fontWeight: 700 }}>出勤</div>
+              <div style={{ fontSize: 11, color: "#111", fontWeight: 700 }}>出番</div>
               <div style={{ fontSize: 11, color: "#4a90d9", fontWeight: 700 }}>有給</div>
               <div style={{ fontSize: 11, color: "#e55", fontWeight: 700 }}>欠勤</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 14, height: 14, borderRadius: "50%", background: "#111" }} />今日</div>
@@ -839,7 +839,7 @@ export default function TaxiSalesApp() {
             <div style={card}>
               <div style={{ ...lbl, marginBottom: 12 }}>設定リセット</div>
               <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-                締日・歩合率・出勤調整など、全ての設定値を消去します。売上記録には影響しません。
+                締日・歩合率など、全ての設定値を消去します。売上記録には影響しません。
               </div>
               {!confirmingReset ? (
                 <button onClick={() => setConfirmingReset(true)} style={{ background: "#e55", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "13px", width: "100%" }}>
@@ -1089,7 +1089,7 @@ function SignedOutPanel({ status, signInGoogle, signUpEmail, signInEmail, resetP
   );
 }
 
-const STATE_LABEL = { work: "出勤", paid_leave: "有給", absent: "欠勤" };
+const STATE_LABEL = { work: "出番", paid_leave: "有給", absent: "欠勤" };
 const STATE_COLOR = { work: "#111", paid_leave: "#4a90d9", absent: "#e55" };
 const TODAY_COLOR = "#111";
 
@@ -1107,7 +1107,7 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
 });
 
 const ATT_OPTIONS = [
-  { key: "work", label: "出勤", color: "#111" },
+  { key: "work", label: "出番", color: "#111" },
   { key: "paid_leave", label: "有給", color: "#4a90d9" },
   { key: "absent", label: "欠勤", color: "#e55" },
   { key: null, label: "なし", color: "#999" },
