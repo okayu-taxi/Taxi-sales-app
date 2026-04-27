@@ -1192,4 +1192,4 @@ const inputStyle = { flex: 1, background: "#f5f5f5", border: "1.5px solid #ebebe
 const primaryBtn = { background: "#111", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "10px 16px" };
 const ghostBtn = { background: "transparent", border: "1.5px solid #e0e0e0", borderRadius: 8, color: "#888", fontSize: 12, cursor: "pointer", padding: "6px 12px" };
 const navBtn = { background: "none", border: "none", color: "#ccc", fontSize: 26, cursor: "pointer", padding: "0 8px" };
-const tabPanelStyle = { flex: "0 0 25%", width: "25%", height: "100%", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", padding: "10px 12px", boxSizing: "border-box" };
+const tabPanelStyle = { flex: "0 0 25%", width: "25%", height: "100%", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "10px 12px", boxSizing: "border-box" };
