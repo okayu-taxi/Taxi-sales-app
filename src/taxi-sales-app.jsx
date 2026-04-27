@@ -158,6 +158,7 @@ export default function TaxiSalesApp() {
   const [editingClosing, setEditingClosing] = useState(false);
   const [closingInput, setClosingInput] = useState("");
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [attMenu, setAttMenu] = useState(null);
   const swipeRef = useRef(null);
   const sliderRef = useRef(null);
   const trackRef = useRef(null);
@@ -382,13 +383,14 @@ export default function TaxiSalesApp() {
   }, []);
 
   const toggleAtt = useCallback((y, m, d) => {
+    setAttMenu({ y, m, d });
+  }, []);
+
+  const setAttState = useCallback((y, m, d, state) => {
     const key = `${y}-${m}-${d}`;
     setData(p => {
       const na = { ...p.attendance };
-      const cur = na[key];
-      if (!cur) na[key] = 'work';
-      else if (cur === 'work') na[key] = 'paid_leave';
-      else if (cur === 'paid_leave') na[key] = 'absent';
+      if (state) na[key] = state;
       else delete na[key];
       return { ...p, attendance: na };
     });
@@ -773,8 +775,7 @@ export default function TaxiSalesApp() {
         <div style={{ ...tabPanelStyle, order: 2 }}>{visitedTabs.has("calendar") && <> {/* 出番表 */}
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: "#aaa", lineHeight: 1.8 }}>
-              タップするたびに切り替わります：<br />
-              <span style={{ color: "#111", fontWeight: 700 }}>出勤</span>　→　<span style={{ color: "#4a90d9", fontWeight: 700 }}>有給</span>　→　<span style={{ color: "#e55", fontWeight: 700 }}>欠勤</span>　→　なし
+              日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出勤</span>・<span style={{ color: "#4a90d9", fontWeight: 700 }}>有給</span>・<span style={{ color: "#e55", fontWeight: 700 }}>欠勤</span>を選択
             </p>
           </div>
           {(periodAtt.work > 0 || periodAtt.paid > 0 || periodAtt.absent > 0) && (
@@ -912,6 +913,16 @@ export default function TaxiSalesApp() {
         )}</div>
         </div>
       </div>
+      {attMenu && (
+        <AttMenuSheet
+          y={attMenu.y}
+          m={attMenu.m}
+          d={attMenu.d}
+          current={getAttState(attMenu.y, attMenu.m, attMenu.d)}
+          onSelect={(state) => { setAttState(attMenu.y, attMenu.m, attMenu.d, state); setAttMenu(null); }}
+          onClose={() => setAttMenu(null)}
+        />
+      )}
     </div>
   );
 }
@@ -1197,6 +1208,39 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
     </button>
   );
 });
+
+const ATT_OPTIONS = [
+  { key: "work", label: "出勤", color: "#111" },
+  { key: "paid_leave", label: "有給", color: "#4a90d9" },
+  { key: "absent", label: "欠勤", color: "#e55" },
+  { key: null, label: "なし", color: "#999" },
+];
+
+function AttMenuSheet({ y, m, d, current, onSelect, onClose }) {
+  const w = ["日","月","火","水","木","金","土"][new Date(y, m, d).getDay()];
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", width: "100%", maxWidth: 480, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: "20px 16px 24px", boxSizing: "border-box" }}>
+        <div style={{ fontSize: 14, color: "#999", textAlign: "center", marginBottom: 16, fontWeight: 600 }}>{y}年{m + 1}月{d}日（{w}）</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {ATT_OPTIONS.map(it => {
+            const isSel = current === it.key;
+            return (
+              <button
+                key={String(it.key)}
+                onClick={() => onSelect(it.key)}
+                style={{ padding: "14px 16px", border: isSel ? `2px solid ${it.color}` : "1px solid #ebebeb", borderRadius: 10, background: isSel ? `${it.color}10` : "#fff", fontSize: 15, fontWeight: 700, color: it.color, cursor: "pointer", textAlign: "center" }}
+              >
+                {it.label}
+              </button>
+            );
+          })}
+          <button onClick={onClose} style={{ padding: "12px 16px", border: "none", borderRadius: 10, background: "#f5f5f5", fontSize: 13, color: "#888", cursor: "pointer", marginTop: 4 }}>キャンセル</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const card = { background: "#fff", border: "1px solid #ebebeb", borderRadius: 14, padding: "16px", marginBottom: 12, boxShadow: "0 1px 4px rgba(0,0,0,0.03)" };
 const lbl = { fontSize: 10, color: "#bbb", letterSpacing: 1.5, fontWeight: 700, textTransform: "uppercase" };
