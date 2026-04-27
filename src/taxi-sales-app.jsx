@@ -756,8 +756,9 @@ export default function TaxiSalesApp() {
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.dayOff}</div><div style={{ fontSize: 10, color: "#999" }}>休み</div></div>
               </div>
             </div>
-            <div style={{ ...card, flex: "1 1 0", minWidth: 0, padding: "12px 14px", marginBottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "12px", fontSize: 13, fontWeight: 700, width: "100%" }}>締日変更</button>
+            <div style={{ ...card, flex: "1 1 0", minWidth: 0, padding: "12px 14px", marginBottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
+              <div style={{ fontSize: 11, color: "#999", textAlign: "center" }}>現在 {closingDay === 0 ? "末日" : `${closingDay}日`}</div>
+              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "8px", fontSize: 12, fontWeight: 700, width: "100%" }}>締日変更</button>
             </div>
           </div>
           <div style={card} onTouchStart={onCalTouchStart} onTouchMove={onCalTouchMove} onTouchEnd={onCalTouchEnd}>
@@ -791,8 +792,7 @@ export default function TaxiSalesApp() {
                       const isToday = mo.y===today.year && mo.m===today.month && day===today.day;
                       const state = getAttState(mo.y, mo.m, day);
                       const dow = (mo.first + day - 1) % 7;
-                      const isClosing = closingDay > 0 && day === Math.min(closingDay, mo.days);
-                      return <CalDay key={day} day={day} isToday={isToday} isClosing={isClosing} state={state} dow={dow} calYear={mo.y} calMonth={mo.m} onToggle={toggleAtt} />;
+                      return <CalDay key={day} day={day} isToday={isToday} state={state} dow={dow} calYear={mo.y} calMonth={mo.m} onToggle={toggleAtt} />;
                     })}
                   </div>
                 ))}
@@ -1089,7 +1089,7 @@ const STATE_LABEL = { work: "出番", paid_leave: "有給", absent: "公出", da
 const STATE_COLOR = { work: "#111", paid_leave: "#3399ff", absent: "#c8900a", day_off: "#e55" };
 const TODAY_COLOR = "#111";
 
-const CalDay = memo(({ day, isToday, isClosing, state, dow, calYear, calMonth, onToggle }) => {
+const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) => {
   const numColor = isToday ? "#fff" : dow === 0 ? "#e55" : dow === 6 ? "#55a" : "#333";
   return (
     <button
