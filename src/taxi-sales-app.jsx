@@ -883,23 +883,24 @@ export default function TaxiSalesApp() {
 
 
 function CommissionPanel({ commission, saveCommission }) {
-  const initial = commission?.tiers?.length ? commission.tiers : [];
-  const [tiers, setTiers] = useState(initial);
-  const [expanded, setExpanded] = useState(initial.length === 0);
-  useEffect(() => { setTiers(commission?.tiers || []); }, [commission?.tiers]);
-  const num = (v) => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
-  const updateRow = (i, patch) => setTiers(prev => prev.map((t, idx) => idx === i ? { ...t, ...patch } : t));
-  const removeRow = (i) => setTiers(prev => prev.filter((_, idx) => idx !== i));
-  const addRow = () => setTiers(prev => [...prev, { threshold: 0, rate: 0 }]);
-  const onSave = () => {
-    const cleaned = tiers
-      .map(t => ({ threshold: Math.max(0, Math.round(num(t.threshold))), rate: Math.max(0, Math.min(100, num(t.rate))) }))
-      .sort((a, b) => a.threshold - b.threshold);
-    saveCommission({ tiers: cleaned });
+  const tiers = sortTiers(commission?.tiers || []);
+  const [expanded, setExpanded] = useState(tiers.length === 0);
+  const [editingTier, setEditingTier] = useState(null);
+  const savedCount = tiers.length;
+  const topSaved = savedCount > 0 ? tiers[savedCount - 1] : null;
+
+  const upsertTier = (idx, t) => {
+    const next = [...tiers];
+    if (idx >= 0) next[idx] = t; else next.push(t);
+    saveCommission({ tiers: sortTiers(next) });
+    setEditingTier(null);
   };
-  const dirty = JSON.stringify(tiers) !== JSON.stringify(commission?.tiers || []);
-  const savedCount = commission?.tiers?.length || 0;
-  const topSaved = savedCount > 0 ? sortTiers(commission.tiers)[savedCount - 1] : null;
+  const deleteTier = (idx) => {
+    const next = tiers.filter((_, i) => i !== idx);
+    saveCommission({ tiers: next });
+    setEditingTier(null);
+  };
+
   if (!expanded) {
     return (
       <>
@@ -918,35 +919,45 @@ function CommissionPanel({ commission, saveCommission }) {
     <>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
         <div style={lbl}>足切り設定</div>
-        <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>閉じる</button>
+        <button onClick={() => setExpanded(false)} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>閉じる</button>
       </div>
-      <div style={{ fontSize: 11, color: "#999", marginBottom: 8, lineHeight: 1.5 }}>
-        足切り（円）と歩合（%）を1行ずつ追加。営収が足切り以上で対応する歩合に切替。
+      <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.5 }}>
+        段階をタップで編集、+ で追加。営収がその足切り以上で対応する歩合に切替。
       </div>
       {tiers.length === 0 ? (
-        <div style={{ fontSize: 12, color: "#ccc", textAlign: "center", padding: "12px 0" }}>歩合がまだ登録されていません</div>
+        <div style={{ fontSize: 12, color: "#ccc", textAlign: "center", padding: "16px 0" }}>段階がまだ登録されていません</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 32px", gap: 6, fontSize: 10, color: "#999", padding: "0 4px" }}>
-            <div>足切り（円）</div>
-            <div style={{ textAlign: "right" }}>歩合 (%)</div>
-            <div></div>
-          </div>
-          {tiers.map((t, i) => (
-            <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 80px 32px", gap: 6, alignItems: "center" }}>
-              <input type="number" value={t.threshold} onChange={e => updateRow(i, { threshold: e.target.value })} style={{ ...inputStyle, padding: "6px 10px", boxSizing: "border-box" }} />
-              <input type="number" step="0.01" value={t.rate} onChange={e => updateRow(i, { rate: e.target.value })} style={{ ...inputStyle, padding: "6px", boxSizing: "border-box", textAlign: "right" }} />
-              <button onClick={() => removeRow(i)} style={{ background: "transparent", border: "none", color: "#e55", fontSize: 18, cursor: "pointer", padding: 0 }}>✕</button>
-            </div>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+          {tiers.map((t, i) => {
+            const next = tiers[i + 1];
+            const startStr = `¥${(t.threshold || 0).toLocaleString()}`;
+            const endStr = next ? `¥${Math.max(0, (next.threshold || 0) - 1).toLocaleString()}` : "上限なし";
+            return (
+              <button
+                key={i}
+                onClick={() => setEditingTier({ idx: i, tier: t })}
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#f5f5f5", border: "1px solid #ebebeb", borderRadius: 10, padding: "10px 14px", cursor: "pointer", textAlign: "left", color: "inherit", width: "100%" }}
+              >
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#111" }}>{startStr} 〜 {endStr}</div>
+                </div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#111", flexShrink: 0, marginLeft: 12 }}>{t.rate}<span style={{ fontSize: 12, fontWeight: 600, color: "#999", marginLeft: 1 }}>%</span></div>
+              </button>
+            );
+          })}
         </div>
       )}
-      <button onClick={addRow} style={{ ...ghostBtn, width: "100%", padding: "8px", marginBottom: 6 }}>+ 段階を追加</button>
-      <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
-        <button onClick={() => { onSave(); setExpanded(false); }} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "11px", opacity: dirty ? 1 : 0.4 }}>保存</button>
-      </div>
-      {(commission?.tiers?.length > 0 || tiers.length > 0) && (
-        <button onClick={() => { if (window.confirm("全ての段階を消去します。よろしいですか？")) { setTiers([]); saveCommission({ tiers: [] }); } }} style={{ ...ghostBtn, width: "100%", padding: "8px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
+      <button onClick={() => setEditingTier({ idx: -1, tier: null })} style={{ ...ghostBtn, width: "100%", padding: "10px", marginBottom: 6 }}>+ 段階を追加</button>
+      {tiers.length > 0 && (
+        <button onClick={() => { if (window.confirm("全ての段階を消去します。よろしいですか？")) { saveCommission({ tiers: [] }); } }} style={{ ...ghostBtn, width: "100%", padding: "8px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
+      )}
+      {editingTier && (
+        <CommissionTierSheet
+          tier={editingTier.tier}
+          onSave={(t) => upsertTier(editingTier.idx, t)}
+          onDelete={editingTier.idx >= 0 ? () => deleteTier(editingTier.idx) : null}
+          onClose={() => setEditingTier(null)}
+        />
       )}
     </>
   );
@@ -1121,6 +1132,41 @@ function ClosingSheet({ value, onChange, onSave, onClose }) {
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <button onClick={onSave} style={{ ...primaryBtn, padding: "14px", width: "100%" }}>保存</button>
+          <button onClick={onClose} style={{ padding: "12px 16px", border: "none", borderRadius: 10, background: "#f5f5f5", fontSize: 13, color: "#888", cursor: "pointer" }}>キャンセル</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CommissionTierSheet({ tier, onSave, onDelete, onClose }) {
+  const [threshold, setThreshold] = useState(tier?.threshold != null ? String(tier.threshold) : "");
+  const [rate, setRate] = useState(tier?.rate != null ? String(tier.rate) : "");
+  const [error, setError] = useState("");
+  const isEdit = !!tier;
+  const submit = () => {
+    const t = parseInt(threshold, 10);
+    const r = parseFloat(rate);
+    if (isNaN(t) || t < 0) { setError("足切りには 0 以上の整数を入力してください"); return; }
+    if (isNaN(r) || r < 0 || r > 100) { setError("歩合は 0〜100 の数値を入力してください"); return; }
+    onSave({ threshold: Math.round(t), rate: r });
+  };
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", width: "100%", maxWidth: 480, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: "20px 16px 24px", boxSizing: "border-box" }}>
+        <div style={{ fontSize: 14, color: "#999", textAlign: "center", marginBottom: 16, fontWeight: 600 }}>{isEdit ? "段階を編集" : "新しい段階を追加"}</div>
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 11, color: "#999", marginBottom: 4 }}>足切り（円）</div>
+          <input type="number" inputMode="numeric" placeholder="例: 500000" value={threshold} onChange={e => setThreshold(e.target.value)} style={{ ...inputStyle, width: "100%", padding: "12px 14px", boxSizing: "border-box", fontSize: 16 }} />
+        </div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: "#999", marginBottom: 4 }}>歩合（%）</div>
+          <input type="number" inputMode="decimal" step="0.1" placeholder="例: 55" value={rate} onChange={e => setRate(e.target.value)} style={{ ...inputStyle, width: "100%", padding: "12px 14px", boxSizing: "border-box", fontSize: 16 }} />
+        </div>
+        {error && <div style={{ fontSize: 11, color: "#e55", marginBottom: 10 }}>{error}</div>}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button onClick={submit} style={{ ...primaryBtn, padding: "14px", width: "100%" }}>保存</button>
+          {onDelete && <button onClick={() => { if (window.confirm("この段階を削除します。よろしいですか？")) onDelete(); }} style={{ ...ghostBtn, padding: "12px", width: "100%", color: "#e55", borderColor: "#f5c8c8" }}>削除</button>}
           <button onClick={onClose} style={{ padding: "12px 16px", border: "none", borderRadius: 10, background: "#f5f5f5", fontSize: 13, color: "#888", cursor: "pointer" }}>キャンセル</button>
         </div>
       </div>
