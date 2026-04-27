@@ -531,23 +531,6 @@ export default function TaxiSalesApp() {
   }, [calYear, calMonth, attendance]);
   const { cells: calCells, first: calFirst } = calMonths[1];
 
-  const calPeriodWork = useMemo(() => {
-    let cp;
-    if (closingDay === 0) {
-      cp = getPeriod(calYear, calMonth, 0);
-    } else {
-      let nextY = calYear, nextM = calMonth + 1;
-      if (nextM > 11) { nextM = 0; nextY = calYear + 1; }
-      cp = getPeriod(nextY, nextM, closingDay);
-    }
-    const dates = getDatesInPeriod(cp);
-    let n = 0;
-    for (const d of dates) {
-      if (attendance[`${d.year}-${d.month}-${d.day}`] === 'work') n++;
-    }
-    return n;
-  }, [calYear, calMonth, closingDay, attendance]);
-
   return (
     <div style={{ height: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column" }}>
 
@@ -802,7 +785,6 @@ export default function TaxiSalesApp() {
                     </button>
                   );
                 })()}
-                <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>締日まで 出番{calPeriodWork}日</div>
               </div>
               <button onClick={nextCal} style={navBtn}>›</button>
             </div>
