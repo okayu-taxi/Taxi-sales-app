@@ -775,7 +775,7 @@ export default function TaxiSalesApp() {
               </div>
             </div>
             <div style={{ ...card, flex: "1 1 0", minWidth: 0, padding: "12px 14px", marginBottom: 0, display: "flex", flexDirection: "column", justifyContent: "center", gap: 6 }}>
-              <div style={{ fontSize: 11, color: "#999", textAlign: "center" }}>現在 {closingDay === 0 ? "末日" : `${closingDay}日`}</div>
+              <div style={{ fontSize: 11, color: "#bbb", textAlign: "center", fontWeight: 600 }}>現在 <span style={{ fontSize: 16, color: "#111", fontWeight: 800 }}>{closingDay === 0 ? "末日" : `${closingDay}日`}</span></div>
               <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "8px", fontSize: 12, fontWeight: 700, width: "100%" }}>締日変更</button>
             </div>
           </div>
