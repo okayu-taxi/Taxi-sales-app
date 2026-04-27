@@ -752,21 +752,21 @@ export default function TaxiSalesApp() {
             </p>
           </div>
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#c8900a" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公出</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#3399ff" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.dayOff}</div><div style={{ fontSize: 10, color: "#999" }}>休み</div></div>
-                </div>
+            <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
+            <div style={{ display: "flex", gap: 12 }}>
+              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
+              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#c8900a" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公出</div></div>
+              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#3399ff" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
+              <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.dayOff}</div><div style={{ fontSize: 10, color: "#999" }}>休み</div></div>
+            </div>
+          </div>
+          <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>締日</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{closingLabel}</div>
               </div>
-              <div style={{ flexShrink: 0, textAlign: "right" }}>
-                <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>締日</div>
-                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>{closingLabel}</div>
-                <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>変更</button>
-              </div>
+              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12, flexShrink: 0 }}>変更</button>
             </div>
           </div>
           <div style={card} onTouchStart={onCalTouchStart} onTouchMove={onCalTouchMove} onTouchEnd={onCalTouchEnd}>
@@ -1116,7 +1116,6 @@ function ClosingSheet({ value, onChange, onSave, onClose }) {
             value={value}
             onChange={e => onChange(e.target.value)}
             onKeyDown={e => e.key === "Enter" && onSave()}
-            autoFocus
             style={{ ...inputStyle, padding: "12px 14px", boxSizing: "border-box", minWidth: 0, fontSize: 16 }}
           />
           <span style={{ color: "#999", fontSize: 14 }}>日</span>
