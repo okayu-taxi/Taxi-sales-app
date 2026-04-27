@@ -1,10 +1,9 @@
 import { useRef, useEffect } from "react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, LabelList, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, LabelList } from "recharts";
 
 const DAY_WIDTH = 52;
 const CHART_HEIGHT = 200;
 const SALES_COLOR = "#3399ff";
-const TOLL_COLOR = "#e55";
 
 export default function SalesChart({ chartData, fmt, onPointClick, todayIndex }) {
   const containerRef = useRef(null);
@@ -42,7 +41,6 @@ export default function SalesChart({ chartData, fmt, onPointClick, todayIndex })
   };
 
   return (
-    <>
     <div ref={containerRef} style={{ overflowX: "auto", overflowY: "hidden", WebkitOverflowScrolling: "touch" }}>
       <LineChart
         width={chartWidth}
@@ -83,25 +81,7 @@ export default function SalesChart({ chartData, fmt, onPointClick, todayIndex })
         >
           <LabelList dataKey="売上" content={renderSalesLabel} />
         </Line>
-        <Line
-          type="monotone"
-          dataKey="自腹高速"
-          stroke={TOLL_COLOR}
-          strokeWidth={2}
-          connectNulls
-          dot={{ r: 4, fill: "#fff", stroke: TOLL_COLOR, strokeWidth: 2 }}
-          activeDot={{ r: 6, fill: TOLL_COLOR, stroke: "#fff", strokeWidth: 2 }}
-        />
       </LineChart>
     </div>
-    <div style={{ display: "flex", gap: 16, justifyContent: "center", padding: "6px 0 0", fontSize: 11, color: "#777" }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-        <span style={{ display: "inline-block", width: 18, height: 2, background: SALES_COLOR }} />売上
-      </span>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-        <span style={{ display: "inline-block", width: 18, height: 2, background: TOLL_COLOR }} />自腹高速
-      </span>
-    </div>
-    </>
   );
 }
