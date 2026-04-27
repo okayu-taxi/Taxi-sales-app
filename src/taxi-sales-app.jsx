@@ -770,11 +770,11 @@ export default function TaxiSalesApp() {
                   <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公休</div></div>
                 </div>
               </div>
-              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ background: "transparent", border: "none", cursor: "pointer", textAlign: "right", padding: 0, color: "inherit" }}>
+              <div style={{ flexShrink: 0, textAlign: "right" }}>
                 <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>締日</div>
-                <div style={{ fontSize: 14, fontWeight: 700 }}>{closingLabel}</div>
-                <div style={{ fontSize: 10, color: "#3399ff", marginTop: 2, textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 2 }}>変更</div>
-              </button>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>{closingLabel}</div>
+                <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>変更</button>
+              </div>
             </div>
           </div>
           <div style={card} onTouchStart={onCalTouchStart} onTouchMove={onCalTouchMove} onTouchEnd={onCalTouchEnd}>
