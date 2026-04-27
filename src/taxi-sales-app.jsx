@@ -532,7 +532,14 @@ export default function TaxiSalesApp() {
   const { cells: calCells, first: calFirst } = calMonths[1];
 
   const calPeriodWork = useMemo(() => {
-    const cp = getPeriod(calYear, calMonth, closingDay);
+    let cp;
+    if (closingDay === 0) {
+      cp = getPeriod(calYear, calMonth, 0);
+    } else {
+      let nextY = calYear, nextM = calMonth + 1;
+      if (nextM > 11) { nextM = 0; nextY = calYear + 1; }
+      cp = getPeriod(nextY, nextM, closingDay);
+    }
     const dates = getDatesInPeriod(cp);
     let n = 0;
     for (const d of dates) {
@@ -758,7 +765,7 @@ export default function TaxiSalesApp() {
         <div style={{ ...tabPanelStyle, order: 2 }}>{visitedTabs.has("calendar") && <> {/* 出番表 */}
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: "#aaa", lineHeight: 1.8 }}>
-              日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出番</span>・<span style={{ color: "#3399ff", fontWeight: 700 }}>有給</span>・<span style={{ color: "#c8900a", fontWeight: 700 }}>公休</span>・<span style={{ color: "#e55", fontWeight: 700 }}>休み</span>を選択
+              日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出番</span>・<span style={{ color: "#3399ff", fontWeight: 700 }}>有給</span>・<span style={{ color: "#c8900a", fontWeight: 700 }}>公出</span>・<span style={{ color: "#e55", fontWeight: 700 }}>休み</span>を選択
             </p>
           </div>
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
@@ -768,7 +775,7 @@ export default function TaxiSalesApp() {
                 <div style={{ display: "flex", gap: 12 }}>
                   <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#111" }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
                   <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#3399ff" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#c8900a" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公休</div></div>
+                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#c8900a" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公出</div></div>
                   <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.dayOff}</div><div style={{ fontSize: 10, color: "#999" }}>休み</div></div>
                 </div>
               </div>
@@ -820,7 +827,7 @@ export default function TaxiSalesApp() {
             <div style={{ display: "flex", gap: 12, marginTop: 16, paddingTop: 14, borderTop: "1px solid #f0f0f0", justifyContent: "center", flexWrap: "wrap" }}>
               <div style={{ fontSize: 11, color: "#111", fontWeight: 700 }}>出番</div>
               <div style={{ fontSize: 11, color: "#3399ff", fontWeight: 700 }}>有給</div>
-              <div style={{ fontSize: 11, color: "#c8900a", fontWeight: 700 }}>公休</div>
+              <div style={{ fontSize: 11, color: "#c8900a", fontWeight: 700 }}>公出</div>
               <div style={{ fontSize: 11, color: "#e55", fontWeight: 700 }}>休み</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 14, height: 14, borderRadius: "50%", background: "#111" }} />今日</div>
             </div>
@@ -1094,7 +1101,7 @@ function SignedOutPanel({ status, signInGoogle, signUpEmail, signInEmail, resetP
   );
 }
 
-const STATE_LABEL = { work: "出番", paid_leave: "有給", absent: "公休", day_off: "休み" };
+const STATE_LABEL = { work: "出番", paid_leave: "有給", absent: "公出", day_off: "休み" };
 const STATE_COLOR = { work: "#111", paid_leave: "#3399ff", absent: "#c8900a", day_off: "#e55" };
 const TODAY_COLOR = "#111";
 
@@ -1114,7 +1121,7 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
 const ATT_OPTIONS = [
   { key: "work", label: "出番", color: "#111" },
   { key: "paid_leave", label: "有給", color: "#3399ff" },
-  { key: "absent", label: "公休", color: "#c8900a" },
+  { key: "absent", label: "公出", color: "#c8900a" },
   { key: "day_off", label: "休み", color: "#e55" },
   { key: null, label: "なし", color: "#999" },
 ];
