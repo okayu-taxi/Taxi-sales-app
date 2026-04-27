@@ -1114,12 +1114,7 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
       onClick={() => onToggle(calYear, calMonth, day)}
       style={{ border: "none", padding: "4px 0", cursor: "pointer", background: "transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
     >
-      <div style={{ position: "relative", width: 32, height: 30, border: isClosing ? "2px solid #111" : "2px solid transparent", borderRadius: 4, boxSizing: "border-box", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <span style={{ width: 22, height: 22, lineHeight: "22px", borderRadius: "50%", background: isToday ? TODAY_COLOR : "transparent", color: numColor, fontWeight: 700, textAlign: "center", fontSize: 13 }}>{day}</span>
-        {isClosing && (
-          <span style={{ position: "absolute", top: 1, right: 1, fontSize: 7, lineHeight: 1, fontWeight: 700, color: "#111" }}>締日</span>
-        )}
-      </div>
+      <span style={{ width: 26, height: 26, lineHeight: "26px", borderRadius: "50%", background: isToday ? TODAY_COLOR : "transparent", color: numColor, fontWeight: 700, textAlign: "center", fontSize: 14 }}>{day}</span>
       <span style={{ fontSize: 9, fontWeight: 700, lineHeight: 1, minHeight: 9, color: state ? STATE_COLOR[state] : "transparent" }}>{state ? STATE_LABEL[state] : "・"}</span>
     </button>
   );
