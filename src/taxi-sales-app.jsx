@@ -740,7 +740,6 @@ export default function TaxiSalesApp() {
 
           {/* 足切り設定 */}
           <div style={card}>
-            <div style={{ ...lbl, marginBottom: 12 }}>足切り設定</div>
             <CommissionPanel commission={commission} saveCommission={saveCommission} />
           </div>
         </>}</div>
@@ -905,7 +904,8 @@ function CommissionPanel({ commission, saveCommission }) {
   if (!expanded) {
     return (
       <>
-        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={lbl}>足切り設定</div>
           <button onClick={() => setExpanded(true)} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>編集</button>
         </div>
         <div style={{ background: "#f5f5f5", borderRadius: 10, padding: "12px 14px" }}>
@@ -917,7 +917,8 @@ function CommissionPanel({ commission, saveCommission }) {
   }
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={lbl}>足切り設定</div>
         <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>閉じる</button>
       </div>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
