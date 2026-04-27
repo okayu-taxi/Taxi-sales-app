@@ -466,12 +466,12 @@ export default function TaxiSalesApp() {
     const dx = t.clientX - s.x;
     const dy = t.clientY - s.y;
     if (!s.dragging) {
-      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-      if (Math.abs(dx) < Math.abs(dy) * 1.5) {
+      if (Math.abs(dy) > 6) {
         calSwipeRef.current = null;
         if (calTrackRef.current) calTrackRef.current.style.transition = "transform 0.25s ease-out";
         return;
       }
+      if (Math.abs(dx) < 12) return;
       s.dragging = true;
     }
     e.stopPropagation();
@@ -589,8 +589,8 @@ export default function TaxiSalesApp() {
           const dx = t.clientX - s.x;
           const dy = t.clientY - s.y;
           if (!s.dragging) {
-            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-            if (Math.abs(dx) < Math.abs(dy) * 1.5) { swipeRef.current = null; if (trackRef.current) trackRef.current.style.transition = "transform 0.25s ease-out"; return; }
+            if (Math.abs(dy) > 6) { swipeRef.current = null; if (trackRef.current) trackRef.current.style.transition = "transform 0.25s ease-out"; return; }
+            if (Math.abs(dx) < 12) return;
             s.dragging = true;
           }
           let drag = dx;
@@ -933,8 +933,8 @@ function CommissionPanel({ commission, saveCommission }) {
   }
   return (
     <>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
-        <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ background: "transparent", border: "none", padding: "4px 8px", color: "#999", fontSize: 18, cursor: "pointer", lineHeight: 1 }} aria-label="閉じる">×</button>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>閉じる</button>
       </div>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
         足切り（円）と、その金額に達した時の歩合（%）を1行ずつ追加してください。<br />
@@ -1185,4 +1185,4 @@ const inputStyle = { flex: 1, background: "#f5f5f5", border: "1.5px solid #ebebe
 const primaryBtn = { background: "#111", border: "none", borderRadius: 8, color: "#fff", fontWeight: 700, fontSize: 14, cursor: "pointer", padding: "10px 16px" };
 const ghostBtn = { background: "transparent", border: "1.5px solid #e0e0e0", borderRadius: 8, color: "#888", fontSize: 12, cursor: "pointer", padding: "6px 12px" };
 const navBtn = { background: "none", border: "none", color: "#ccc", fontSize: 26, cursor: "pointer", padding: "0 8px" };
-const tabPanelStyle = { flex: "0 0 25%", width: "25%", height: "100%", overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "10px 12px", boxSizing: "border-box" };
+const tabPanelStyle = { flex: "0 0 25%", width: "25%", height: "100%", overflowY: "auto", WebkitOverflowScrolling: "touch", overscrollBehavior: "contain", touchAction: "pan-y", padding: "10px 12px", boxSizing: "border-box" };
