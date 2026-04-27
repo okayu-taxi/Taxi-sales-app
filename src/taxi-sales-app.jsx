@@ -1,8 +1,26 @@
-import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo, Component } from "react";
 import { createPortal } from "react-dom";
 import { subscribeAuth, signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
 
 const LazyChart = lazy(() => import("./SalesChart"));
+
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error("ErrorBoundary:", error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 20, color: "#e55", fontSize: 12, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+          <div style={{ fontWeight: 700, marginBottom: 8 }}>エラーが発生しました</div>
+          <div>{String(this.state.error)}</div>
+          {this.state.error?.stack && <div style={{ marginTop: 8, fontSize: 10, color: "#888" }}>{this.state.error.stack}</div>}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const STORAGE_KEY = "taxi_sales_data_v3";
 
@@ -745,7 +763,7 @@ export default function TaxiSalesApp() {
           </div>
         </>}</div>
 
-        <div style={{ ...tabPanelStyle, order: 2 }}>{visitedTabs.has("calendar") && <> {/* 出番表 */}
+        <div style={{ ...tabPanelStyle, order: 2 }}><ErrorBoundary>{visitedTabs.has("calendar") && <> {/* 出番表 */}
           <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
             <div style={{ ...card, flex: "2 1 0", minWidth: 0, padding: "12px 14px", marginBottom: 0 }}>
               <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
@@ -804,7 +822,7 @@ export default function TaxiSalesApp() {
               日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出番</span>・<span style={{ color: "#c8900a", fontWeight: 700 }}>公出</span>・<span style={{ color: "#3399ff", fontWeight: 700 }}>有給</span>・<span style={{ color: "#e55", fontWeight: 700 }}>休み</span>を選択
             </p>
           </div>
-        </>}</div>
+        </>}</ErrorBoundary></div>
 
         <div style={{ ...tabPanelStyle, order: 4 }}>{visitedTabs.has("settings") && (
           <>
