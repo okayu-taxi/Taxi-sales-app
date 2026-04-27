@@ -750,17 +750,23 @@ export default function TaxiSalesApp() {
               日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出番</span>・<span style={{ color: "#4a90d9", fontWeight: 700 }}>有給</span>・<span style={{ color: "#e55", fontWeight: 700 }}>欠勤</span>を選択
             </p>
           </div>
-          {(periodAtt.work > 0 || periodAtt.paid > 0 || periodAtt.absent > 0) && (
-            <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
-              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
-              <div style={{ display: "flex", gap: 16 }}>
-                <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
-                <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#4a90d9" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
-                <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>欠勤</div></div>
-                {topRateTier && targetTop > 0 && <div style={{ marginLeft: "auto", textAlign: "right" }}><div style={{ fontSize: 11, color: "#bbb" }}>{topRateTier.rate}%足切り</div><div style={{ fontSize: 14, fontWeight: 700 }}>¥{fmt(targetTop)}</div></div>}
+          <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
+                <div style={{ display: "flex", gap: 16 }}>
+                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
+                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#4a90d9" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
+                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>欠勤</div></div>
+                </div>
               </div>
+              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ background: "transparent", border: "none", cursor: "pointer", textAlign: "right", padding: 0, color: "inherit" }}>
+                <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>締日</div>
+                <div style={{ fontSize: 14, fontWeight: 700 }}>{closingLabel}</div>
+                <div style={{ fontSize: 10, color: "#3399ff", marginTop: 2, textDecoration: "underline", textDecorationStyle: "dotted", textUnderlineOffset: 2 }}>変更</div>
+              </button>
             </div>
-          )}
+          </div>
           <div style={card} onTouchStart={onCalTouchStart} onTouchMove={onCalTouchMove} onTouchEnd={onCalTouchEnd}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
               <button onClick={prevCal} style={navBtn}>‹</button>
@@ -805,31 +811,6 @@ export default function TaxiSalesApp() {
               <div style={{ fontSize: 11, color: "#e55", fontWeight: 700 }}>欠勤</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 14, height: 14, borderRadius: "50%", background: "#111" }} />今日</div>
             </div>
-          </div>
-
-          {/* 締日設定 */}
-          <div style={{ ...card, padding: "10px 14px" }}>
-            {!editingClosing ? (
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, color: "#999", fontWeight: 600 }}>締日設定</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, marginTop: 2 }}>{closingLabel}</div>
-                  {closingDay !== 0 && <div style={{ fontSize: 10, color: "#bbb", marginTop: 2 }}>{closingDay >= 29 ? `${closingDay}日（短い月は末日）が1期間の最終日` : `前月${closingDay+1}日〜今月${closingDay}日`}</div>}
-                </div>
-                <button onClick={() => setEditingClosing(true)} style={{ ...ghostBtn, padding: "8px 14px", flex: "none" }}>変更</button>
-              </div>
-            ) : (
-              <>
-                <div style={{ fontSize: 10, color: "#999", fontWeight: 600, marginBottom: 6 }}>締日設定</div>
-                <div style={{ fontSize: 11, color: "#999", marginBottom: 8, lineHeight: 1.6 }}>1〜31を入力（末日締めは「0」）</div>
-                <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                  <input type="number" placeholder="例：20" min={0} max={31} value={closingInput} onChange={e => setClosingInput(e.target.value)} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box", minWidth: 0 }} onKeyDown={e => e.key === "Enter" && saveClosing()} />
-                  <span style={{ color: "#999", fontSize: 13 }}>日</span>
-                  <button onClick={saveClosing} style={{ ...primaryBtn, padding: "8px 14px", flex: "none" }}>保存</button>
-                  <button onClick={() => { setEditingClosing(false); setClosingInput(""); }} style={{ ...ghostBtn, padding: "8px 12px", flex: "none" }}>×</button>
-                </div>
-              </>
-            )}
           </div>
         </>}</div>
 
@@ -893,6 +874,14 @@ export default function TaxiSalesApp() {
           current={getAttState(attMenu.y, attMenu.m, attMenu.d)}
           onSelect={(state) => { setAttState(attMenu.y, attMenu.m, attMenu.d, state); setAttMenu(null); }}
           onClose={() => setAttMenu(null)}
+        />
+      )}
+      {editingClosing && (
+        <ClosingSheet
+          value={closingInput}
+          onChange={setClosingInput}
+          onSave={saveClosing}
+          onClose={() => { setEditingClosing(false); setClosingInput(""); }}
         />
       )}
     </div>
@@ -1112,6 +1101,35 @@ const ATT_OPTIONS = [
   { key: "absent", label: "欠勤", color: "#e55" },
   { key: null, label: "なし", color: "#999" },
 ];
+
+function ClosingSheet({ value, onChange, onSave, onClose }) {
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#fff", width: "100%", maxWidth: 480, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: "20px 16px 24px", boxSizing: "border-box" }}>
+        <div style={{ fontSize: 14, color: "#999", textAlign: "center", marginBottom: 8, fontWeight: 600 }}>締日設定</div>
+        <div style={{ fontSize: 11, color: "#999", marginBottom: 12, lineHeight: 1.6, textAlign: "center" }}>1〜31を入力（末日締めは「0」）</div>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 12 }}>
+          <input
+            type="number"
+            placeholder="例：20"
+            min={0}
+            max={31}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && onSave()}
+            autoFocus
+            style={{ ...inputStyle, padding: "12px 14px", boxSizing: "border-box", minWidth: 0, fontSize: 16 }}
+          />
+          <span style={{ color: "#999", fontSize: 14 }}>日</span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <button onClick={onSave} style={{ ...primaryBtn, padding: "14px", width: "100%" }}>保存</button>
+          <button onClick={onClose} style={{ padding: "12px 16px", border: "none", borderRadius: 10, background: "#f5f5f5", fontSize: 13, color: "#888", cursor: "pointer" }}>キャンセル</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AttMenuSheet({ y, m, d, current, onSelect, onClose }) {
   const w = ["日","月","火","水","木","金","土"][new Date(y, m, d).getDay()];
