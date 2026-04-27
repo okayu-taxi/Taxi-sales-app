@@ -754,12 +754,23 @@ export default function TaxiSalesApp() {
                 <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.dayOff}</div><div style={{ fontSize: 10, color: "#999" }}>休み</div></div>
               </div>
             </div>
-            <div style={{ ...card, flex: "1 1 0", minWidth: 0, padding: "12px 14px", marginBottom: 0, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 11, color: "#bbb", marginBottom: 4, fontWeight: 700, letterSpacing: 1 }}>締日</div>
-                <div style={{ fontSize: 13, fontWeight: 700 }}>{closingLabel}</div>
+            <div style={{ ...card, flex: "1 1 0", minWidth: 0, padding: "12px 14px", marginBottom: 0, display: "flex", flexDirection: "column" }}>
+              <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>締日</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10, fontSize: 13, fontWeight: 700 }}>
+                {closingDay === 0 ? (
+                  <>
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "#111", color: "#fff", fontWeight: 700, fontSize: 12 }}>末</span>
+                    <span>日締め</span>
+                  </>
+                ) : (
+                  <>
+                    <span>毎月</span>
+                    <span style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", width: 26, height: 26, borderRadius: "50%", background: "#111", color: "#fff", fontWeight: 700, fontSize: 13 }}>{closingDay}</span>
+                    <span>日締め</span>
+                  </>
+                )}
               </div>
-              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "6px 10px", fontSize: 12, flexShrink: 0 }}>変更</button>
+              <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ ...ghostBtn, padding: "8px", fontSize: 12, marginTop: "auto", width: "100%" }}>締日変更</button>
             </div>
           </div>
           <div style={card} onTouchStart={onCalTouchStart} onTouchMove={onCalTouchMove} onTouchEnd={onCalTouchEnd}>
