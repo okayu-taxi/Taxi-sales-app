@@ -457,7 +457,6 @@ export default function TaxiSalesApp() {
     const t = e.touches[0];
     const w = calContainerRef.current?.clientWidth || 0;
     calSwipeRef.current = { x: t.clientX, y: t.clientY, dragging: false, w };
-    if (calTrackRef.current) calTrackRef.current.style.transition = "none";
   }, []);
   const onCalTouchMove = useCallback((e) => {
     const s = calSwipeRef.current;
@@ -468,11 +467,11 @@ export default function TaxiSalesApp() {
     if (!s.dragging) {
       if (Math.abs(dy) > 6) {
         calSwipeRef.current = null;
-        if (calTrackRef.current) calTrackRef.current.style.transition = "transform 0.25s ease-out";
         return;
       }
       if (Math.abs(dx) < 12) return;
       s.dragging = true;
+      if (calTrackRef.current) calTrackRef.current.style.transition = "none";
     }
     e.stopPropagation();
     if (calTrackRef.current && s.w > 0) {
@@ -570,7 +569,6 @@ export default function TaxiSalesApp() {
           }
           const t = e.touches[0];
           swipeRef.current = { x: t.clientX, y: t.clientY, dragging: false, w: sliderRef.current?.clientWidth || 0 };
-          if (trackRef.current) trackRef.current.style.transition = "none";
         }}
         onTouchMove={(e) => {
           const s = swipeRef.current;
@@ -579,9 +577,10 @@ export default function TaxiSalesApp() {
           const dx = t.clientX - s.x;
           const dy = t.clientY - s.y;
           if (!s.dragging) {
-            if (Math.abs(dy) > 6) { swipeRef.current = null; if (trackRef.current) trackRef.current.style.transition = "transform 0.25s ease-out"; return; }
+            if (Math.abs(dy) > 6) { swipeRef.current = null; return; }
             if (Math.abs(dx) < 12) return;
             s.dragging = true;
+            if (trackRef.current) trackRef.current.style.transition = "none";
           }
           let drag = dx;
           if (activeIdx === 0 && drag > 0) drag *= 0.3;
