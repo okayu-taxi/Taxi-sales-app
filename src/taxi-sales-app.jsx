@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, lazy, Suspense, memo } from "react";
+import { createPortal } from "react-dom";
 import { subscribeAuth, signInWithGoogle, signUpWithEmail, signInWithEmail, resetPassword, signOutUser, pushToFirestore, pullFromFirestore } from "./firebaseSync";
 
 const LazyChart = lazy(() => import("./SalesChart"));
@@ -516,6 +517,7 @@ export default function TaxiSalesApp() {
       const days = getDaysInMonth(y, m);
       const first = getFirstDayOfWeek(y, m);
       const cells = [...Array(first).fill(null), ...Array.from({length: days}, (_, i) => i + 1)];
+      while (cells.length < 42) cells.push(null);
       let work = 0, paid = 0;
       for (let d = 1; d <= days; d++) {
         const v = attendance[`${y}-${m}-${d}`];
@@ -1153,7 +1155,7 @@ function CommissionTierSheet({ tier, onSave, onDelete, onClose }) {
     if (isNaN(r) || r < 0 || r > 100) { setError("歩合は 0〜100 の数値を入力してください"); return; }
     onSave({ threshold: Math.round(t), rate: r });
   };
-  return (
+  return createPortal(
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", width: "100%", maxWidth: 480, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: "20px 16px 24px", boxSizing: "border-box" }}>
         <div style={{ fontSize: 14, color: "#999", textAlign: "center", marginBottom: 16, fontWeight: 600 }}>{isEdit ? "段階を編集" : "新しい段階を追加"}</div>
@@ -1172,7 +1174,8 @@ function CommissionTierSheet({ tier, onSave, onDelete, onClose }) {
           <button onClick={onClose} style={{ padding: "12px 16px", border: "none", borderRadius: 10, background: "#f5f5f5", fontSize: 13, color: "#888", cursor: "pointer" }}>キャンセル</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
