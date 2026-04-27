@@ -920,14 +920,13 @@ function CommissionPanel({ commission, saveCommission }) {
         <div style={lbl}>足切り設定</div>
         <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ ...ghostBtn, padding: "6px 14px", fontSize: 12 }}>閉じる</button>
       </div>
-      <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
-        足切り（円）と、その金額に達した時の歩合（%）を1行ずつ追加してください。<br />
-        営収が足切り以上になると、対応する歩合に切り替わります。何段階でも作れます。
+      <div style={{ fontSize: 11, color: "#999", marginBottom: 8, lineHeight: 1.5 }}>
+        足切り（円）と歩合（%）を1行ずつ追加。営収が足切り以上で対応する歩合に切替。
       </div>
       {tiers.length === 0 ? (
-        <div style={{ fontSize: 12, color: "#ccc", textAlign: "center", padding: "16px 0" }}>歩合がまだ登録されていません</div>
+        <div style={{ fontSize: 12, color: "#ccc", textAlign: "center", padding: "12px 0" }}>歩合がまだ登録されていません</div>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginBottom: 8 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 80px 32px", gap: 6, fontSize: 10, color: "#999", padding: "0 4px" }}>
             <div>足切り（円）</div>
             <div style={{ textAlign: "right" }}>歩合 (%)</div>
@@ -935,20 +934,19 @@ function CommissionPanel({ commission, saveCommission }) {
           </div>
           {tiers.map((t, i) => (
             <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 80px 32px", gap: 6, alignItems: "center" }}>
-              <input type="number" value={t.threshold} onChange={e => updateRow(i, { threshold: e.target.value })} style={{ ...inputStyle, padding: "8px 10px", boxSizing: "border-box" }} />
-              <input type="number" step="0.01" value={t.rate} onChange={e => updateRow(i, { rate: e.target.value })} style={{ ...inputStyle, padding: "8px", boxSizing: "border-box", textAlign: "right" }} />
+              <input type="number" value={t.threshold} onChange={e => updateRow(i, { threshold: e.target.value })} style={{ ...inputStyle, padding: "6px 10px", boxSizing: "border-box" }} />
+              <input type="number" step="0.01" value={t.rate} onChange={e => updateRow(i, { rate: e.target.value })} style={{ ...inputStyle, padding: "6px", boxSizing: "border-box", textAlign: "right" }} />
               <button onClick={() => removeRow(i)} style={{ background: "transparent", border: "none", color: "#e55", fontSize: 18, cursor: "pointer", padding: 0 }}>✕</button>
             </div>
           ))}
         </div>
       )}
-      <button onClick={addRow} style={{ ...ghostBtn, width: "100%", padding: "10px", marginBottom: 8 }}>+ 段階を追加</button>
-      <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-        <button onClick={() => { onSave(); setExpanded(false); }} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "13px", opacity: dirty ? 1 : 0.4 }}>保存</button>
-        <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ ...ghostBtn, flex: 1, padding: "13px" }}>閉じる</button>
+      <button onClick={addRow} style={{ ...ghostBtn, width: "100%", padding: "8px", marginBottom: 6 }}>+ 段階を追加</button>
+      <div style={{ display: "flex", gap: 8, marginBottom: 6 }}>
+        <button onClick={() => { onSave(); setExpanded(false); }} disabled={!dirty} style={{ ...primaryBtn, flex: 1, padding: "11px", opacity: dirty ? 1 : 0.4 }}>保存</button>
       </div>
       {(commission?.tiers?.length > 0 || tiers.length > 0) && (
-        <button onClick={() => { if (window.confirm("全ての段階を消去します。よろしいですか？")) { setTiers([]); saveCommission({ tiers: [] }); } }} style={{ ...ghostBtn, width: "100%", padding: "10px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
+        <button onClick={() => { if (window.confirm("全ての段階を消去します。よろしいですか？")) { setTiers([]); saveCommission({ tiers: [] }); } }} style={{ ...ghostBtn, width: "100%", padding: "8px", color: "#e55", borderColor: "#f5c8c8", fontSize: 12 }}>全て消去</button>
       )}
     </>
   );
