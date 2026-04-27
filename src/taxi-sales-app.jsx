@@ -465,8 +465,8 @@ export default function TaxiSalesApp() {
     const dx = t.clientX - s.x;
     const dy = t.clientY - s.y;
     if (!s.dragging) {
-      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-      if (Math.abs(dx) < Math.abs(dy)) {
+      if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+      if (Math.abs(dx) < Math.abs(dy) * 1.5) {
         calSwipeRef.current = null;
         if (calTrackRef.current) calTrackRef.current.style.transition = "transform 0.25s ease-out";
         return;
@@ -528,7 +528,17 @@ export default function TaxiSalesApp() {
     const next = calMonth === 11 ? { y: calYear + 1, m: 0 } : { y: calYear, m: calMonth + 1 };
     return [monthMeta(prev.y, prev.m), monthMeta(calYear, calMonth), monthMeta(next.y, next.m)];
   }, [calYear, calMonth, attendance]);
-  const { cells: calCells, first: calFirst, work: calWorkCount, paid: calPaidCount } = calMonths[1];
+  const { cells: calCells, first: calFirst } = calMonths[1];
+
+  const calPeriodWork = useMemo(() => {
+    const cp = getPeriod(calYear, calMonth, closingDay);
+    const dates = getDatesInPeriod(cp);
+    let n = 0;
+    for (const d of dates) {
+      if (attendance[`${d.year}-${d.month}-${d.day}`] === 'work') n++;
+    }
+    return n;
+  }, [calYear, calMonth, closingDay, attendance]);
 
   return (
     <div style={{ height: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column" }}>
@@ -578,8 +588,8 @@ export default function TaxiSalesApp() {
           const dx = t.clientX - s.x;
           const dy = t.clientY - s.y;
           if (!s.dragging) {
-            if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
-            if (Math.abs(dx) < Math.abs(dy)) { swipeRef.current = null; if (trackRef.current) trackRef.current.style.transition = "transform 0.25s ease-out"; return; }
+            if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
+            if (Math.abs(dx) < Math.abs(dy) * 1.5) { swipeRef.current = null; if (trackRef.current) trackRef.current.style.transition = "transform 0.25s ease-out"; return; }
             s.dragging = true;
           }
           let drag = dx;
@@ -747,7 +757,7 @@ export default function TaxiSalesApp() {
         <div style={{ ...tabPanelStyle, order: 2 }}>{visitedTabs.has("calendar") && <> {/* 出番表 */}
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
             <p style={{ margin: 0, fontSize: 12, color: "#aaa", lineHeight: 1.8 }}>
-              日付をタップして<span style={{ color: "#111", fontWeight: 700 }}>出番</span>・<span style={{ color: "#4a90d9", fontWeight: 700 }}>有給</span>・<span style={{ color: "#e55", fontWeight: 700 }}>欠勤</span>を選択
+              日付をタップして<span style={{ color: "#3399ff", fontWeight: 700 }}>出番</span>・<span style={{ color: "#c8900a", fontWeight: 700 }}>公出</span>・<span style={{ color: "#e55", fontWeight: 700 }}>公休</span>を選択
             </p>
           </div>
           <div style={{ ...card, padding: "12px 16px", marginBottom: 12 }}>
@@ -755,9 +765,9 @@ export default function TaxiSalesApp() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 11, color: "#bbb", marginBottom: 8, fontWeight: 700, letterSpacing: 1 }}>今月の出番日数</div>
                 <div style={{ display: "flex", gap: 16 }}>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800 }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#4a90d9" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>有給</div></div>
-                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>欠勤</div></div>
+                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#3399ff" }}>{periodAtt.work}</div><div style={{ fontSize: 10, color: "#999" }}>出番</div></div>
+                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#c8900a" }}>{periodAtt.paid}</div><div style={{ fontSize: 10, color: "#999" }}>公出</div></div>
+                  <div style={{ textAlign: "center" }}><div style={{ fontSize: 18, fontWeight: 800, color: "#e55" }}>{periodAtt.absent}</div><div style={{ fontSize: 10, color: "#999" }}>公休</div></div>
                 </div>
               </div>
               <button onClick={() => { setClosingInput(String(closingDay)); setEditingClosing(true); }} style={{ background: "transparent", border: "none", cursor: "pointer", textAlign: "right", padding: 0, color: "inherit" }}>
@@ -783,7 +793,7 @@ export default function TaxiSalesApp() {
                     </button>
                   );
                 })()}
-                <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>出番{calWorkCount}日　有給{calPaidCount}日</div>
+                <div style={{ fontSize: 11, color: "#bbb", marginTop: 2 }}>締日まで 出番{calPeriodWork}日</div>
               </div>
               <button onClick={nextCal} style={navBtn}>›</button>
             </div>
@@ -806,9 +816,9 @@ export default function TaxiSalesApp() {
               </div>
             </div>
             <div style={{ display: "flex", gap: 12, marginTop: 16, paddingTop: 14, borderTop: "1px solid #f0f0f0", justifyContent: "center", flexWrap: "wrap" }}>
-              <div style={{ fontSize: 11, color: "#111", fontWeight: 700 }}>出番</div>
-              <div style={{ fontSize: 11, color: "#4a90d9", fontWeight: 700 }}>有給</div>
-              <div style={{ fontSize: 11, color: "#e55", fontWeight: 700 }}>欠勤</div>
+              <div style={{ fontSize: 11, color: "#3399ff", fontWeight: 700 }}>出番</div>
+              <div style={{ fontSize: 11, color: "#c8900a", fontWeight: 700 }}>公出</div>
+              <div style={{ fontSize: 11, color: "#e55", fontWeight: 700 }}>公休</div>
               <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#999" }}><div style={{ width: 14, height: 14, borderRadius: "50%", background: "#111" }} />今日</div>
             </div>
           </div>
@@ -920,6 +930,9 @@ function CommissionPanel({ commission, saveCommission }) {
   }
   return (
     <>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 4 }}>
+        <button onClick={() => { setTiers(commission?.tiers || []); setExpanded(false); }} style={{ background: "transparent", border: "none", padding: "4px 8px", color: "#999", fontSize: 18, cursor: "pointer", lineHeight: 1 }} aria-label="閉じる">×</button>
+      </div>
       <div style={{ fontSize: 11, color: "#999", marginBottom: 10, lineHeight: 1.7 }}>
         足切り（円）と、その金額に達した時の歩合（%）を1行ずつ追加してください。<br />
         営収が足切り以上になると、対応する歩合に切り替わります。何段階でも作れます。
@@ -1078,8 +1091,8 @@ function SignedOutPanel({ status, signInGoogle, signUpEmail, signInEmail, resetP
   );
 }
 
-const STATE_LABEL = { work: "出番", paid_leave: "有給", absent: "欠勤" };
-const STATE_COLOR = { work: "#111", paid_leave: "#4a90d9", absent: "#e55" };
+const STATE_LABEL = { work: "出番", paid_leave: "公出", absent: "公休" };
+const STATE_COLOR = { work: "#3399ff", paid_leave: "#c8900a", absent: "#e55" };
 const TODAY_COLOR = "#111";
 
 const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) => {
@@ -1096,9 +1109,9 @@ const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) 
 });
 
 const ATT_OPTIONS = [
-  { key: "work", label: "出番", color: "#111" },
-  { key: "paid_leave", label: "有給", color: "#4a90d9" },
-  { key: "absent", label: "欠勤", color: "#e55" },
+  { key: "work", label: "出番", color: "#3399ff" },
+  { key: "paid_leave", label: "公出", color: "#c8900a" },
+  { key: "absent", label: "公休", color: "#e55" },
   { key: null, label: "なし", color: "#999" },
 ];
 
