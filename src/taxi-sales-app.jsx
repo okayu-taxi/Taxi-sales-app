@@ -75,6 +75,23 @@ function getDatesInPeriod(period) {
   return dates;
 }
 
+function periodKeyForDate(y, m, d, closingDay) {
+  let p;
+  if (closingDay === 0) {
+    p = getPeriod(y, m, 0);
+  } else {
+    const endDay = Math.min(closingDay, getDaysInMonth(y, m));
+    if (d <= endDay) {
+      p = getPeriod(y, m, closingDay);
+    } else {
+      const ny = m === 11 ? y + 1 : y;
+      const nm = m === 11 ? 0 : m + 1;
+      p = getPeriod(ny, nm, closingDay);
+    }
+  }
+  return `${p.startYear}-${p.startMonth}-${p.startDay}_${p.endYear}-${p.endMonth}-${p.endDay}`;
+}
+
 const WEEKDAYS = ["日","月","火","水","木","金","土"];
 
 function authErrorMsg(e) {
@@ -394,6 +411,33 @@ export default function TaxiSalesApp() {
     });
   }, []);
 
+  const setTollForDate = useCallback((y, m, d, value) => {
+    const dateKey = `${y}-${m}-${d}`;
+    const pKey = periodKeyForDate(y, m, d, closingDay);
+    setData(p => {
+      const periods = { ...(p.periods || {}) };
+      const pd = periods[pKey] || { goal: 0, days: {} };
+      const days = { ...(pd.days || {}) };
+      const cur = days[dateKey] || {};
+      if (value > 0) {
+        days[dateKey] = { ...cur, toll: value };
+      } else {
+        const next = { ...cur };
+        delete next.toll;
+        if (Object.keys(next).length === 0) delete days[dateKey];
+        else days[dateKey] = next;
+      }
+      periods[pKey] = { ...pd, days };
+      return { ...p, periods };
+    });
+  }, [closingDay]);
+
+  const getTollForDate = useCallback((y, m, d) => {
+    const dateKey = `${y}-${m}-${d}`;
+    const pKey = periodKeyForDate(y, m, d, closingDay);
+    return data.periods?.[pKey]?.days?.[dateKey]?.toll || 0;
+  }, [data.periods, closingDay]);
+
   const getAttState = useCallback((y, m, d) => attendance[`${y}-${m}-${d}`] || null, [attendance]);
 
   const total = useMemo(() => Object.values(pData.days).reduce((a, b) => a + (b?.sales || 0), 0), [pData.days]);
@@ -549,6 +593,17 @@ export default function TaxiSalesApp() {
     return [monthMeta(prev.y, prev.m), monthMeta(calYear, calMonth), monthMeta(next.y, next.m)];
   }, [calYear, calMonth, attendance]);
   const { cells: calCells, first: calFirst } = calMonths[1];
+
+  const calMaxToll = useMemo(() => {
+    let max = 0;
+    for (const mo of calMonths) {
+      for (let d = 1; d <= mo.days; d++) {
+        const t = getTollForDate(mo.y, mo.m, d);
+        if (t > max) max = t;
+      }
+    }
+    return max;
+  }, [calMonths, getTollForDate]);
 
   return (
     <div style={{ height: "100vh", background: "#f7f7f7", color: "#111", fontFamily: "'Noto Sans JP', -apple-system, sans-serif", maxWidth: 480, margin: "0 auto", display: "flex", flexDirection: "column" }}>
@@ -804,13 +859,14 @@ export default function TaxiSalesApp() {
             <div ref={calContainerRef} style={{ overflow: "hidden", position: "relative" }}>
               <div ref={calTrackRef} style={{ display: "flex", transform: "translate3d(-100%, 0, 0)", transition: "transform 0.25s ease-out", willChange: "transform" }}>
                 {calMonths.map((mo) => (
-                  <div key={`${mo.y}-${mo.m}`} style={{ flex: "0 0 100%", display: "grid", gridTemplateColumns: "repeat(7,1fr)", gridAutoRows: "44px", gap: 3 }}>
+                  <div key={`${mo.y}-${mo.m}`} style={{ flex: "0 0 100%", display: "grid", gridTemplateColumns: "repeat(7,1fr)", gridAutoRows: "48px", gap: 3 }}>
                     {mo.cells.map((day, idx) => {
                       if (!day) return <div key={`e-${idx}`} />;
                       const isToday = mo.y===today.year && mo.m===today.month && day===today.day;
                       const state = getAttState(mo.y, mo.m, day);
                       const dow = (mo.first + day - 1) % 7;
-                      return <CalDay key={day} day={day} isToday={isToday} state={state} dow={dow} calYear={mo.y} calMonth={mo.m} onToggle={toggleAtt} />;
+                      const toll = getTollForDate(mo.y, mo.m, day);
+                      return <CalDay key={day} day={day} isToday={isToday} state={state} toll={toll} maxToll={calMaxToll} dow={dow} calYear={mo.y} calMonth={mo.m} onToggle={toggleAtt} />;
                     })}
                   </div>
                 ))}
@@ -882,7 +938,9 @@ export default function TaxiSalesApp() {
           m={attMenu.m}
           d={attMenu.d}
           current={getAttState(attMenu.y, attMenu.m, attMenu.d)}
+          currentToll={getTollForDate(attMenu.y, attMenu.m, attMenu.d)}
           onSelect={(state) => { setAttState(attMenu.y, attMenu.m, attMenu.d, state); setAttMenu(null); }}
+          onSaveToll={(value) => { setTollForDate(attMenu.y, attMenu.m, attMenu.d, value); }}
           onClose={() => setAttMenu(null)}
         />
       )}
@@ -1107,15 +1165,19 @@ const STATE_LABEL = { work: "出番", paid_leave: "有給", absent: "公出", da
 const STATE_COLOR = { work: "#111", paid_leave: "#3399ff", absent: "#c8900a", day_off: "#e55" };
 const TODAY_COLOR = "#111";
 
-const CalDay = memo(({ day, isToday, state, dow, calYear, calMonth, onToggle }) => {
+const CalDay = memo(({ day, isToday, state, toll = 0, maxToll = 0, dow, calYear, calMonth, onToggle }) => {
   const numColor = isToday ? "#fff" : dow === 0 ? "#e55" : dow === 6 ? "#55a" : "#333";
+  const tollPct = toll > 0 && maxToll > 0 ? Math.min(1, toll / maxToll) : 0;
   return (
     <button
       onClick={() => onToggle(calYear, calMonth, day)}
-      style={{ border: "none", padding: "4px 0", cursor: "pointer", background: "transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}
+      style={{ border: "none", padding: "3px 0", cursor: "pointer", background: "transparent", display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}
     >
       <span style={{ width: 26, height: 26, lineHeight: "26px", borderRadius: "50%", background: isToday ? TODAY_COLOR : "transparent", color: numColor, fontWeight: 700, textAlign: "center", fontSize: 14 }}>{day}</span>
       <span style={{ fontSize: 9, fontWeight: 700, lineHeight: 1, minHeight: 9, color: state ? STATE_COLOR[state] : "transparent" }}>{state ? STATE_LABEL[state] : "・"}</span>
+      <span style={{ display: "block", width: "70%", height: 3, background: "#f0f0f0", borderRadius: 2, overflow: "hidden", visibility: tollPct > 0 ? "visible" : "hidden" }}>
+        <span style={{ display: "block", height: "100%", width: `${tollPct * 100}%`, background: "#e55" }} />
+      </span>
     </button>
   );
 });
@@ -1192,12 +1254,38 @@ function CommissionTierSheet({ tier, onSave, onDelete, onClose }) {
   );
 }
 
-function AttMenuSheet({ y, m, d, current, onSelect, onClose }) {
+function AttMenuSheet({ y, m, d, current, currentToll = 0, onSelect, onSaveToll, onClose }) {
   const w = ["日","月","火","水","木","金","土"][new Date(y, m, d).getDay()];
+  const [tollInput, setTollInput] = useState(currentToll > 0 ? String(currentToll) : "");
+  const [tollSavedTick, setTollSavedTick] = useState(0);
+  const tollDirty = tollInput.trim() !== (currentToll > 0 ? String(currentToll) : "");
+  const submitToll = () => {
+    const raw = tollInput.replace(/,/g, "").trim();
+    const v = raw === "" ? 0 : parseInt(raw, 10);
+    onSaveToll(isNaN(v) || v < 0 ? 0 : v);
+    setTollSavedTick(t => t + 1);
+  };
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", zIndex: 100, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#fff", width: "100%", maxWidth: 480, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: "20px 16px 24px", boxSizing: "border-box" }}>
         <div style={{ fontSize: 14, color: "#999", textAlign: "center", marginBottom: 16, fontWeight: 600 }}>{y}年{m + 1}月{d}日（{w}）</div>
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, color: "#999", marginBottom: 6, fontWeight: 600 }}>自腹高速（円）</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <input
+              type="number"
+              inputMode="numeric"
+              placeholder="例: 500"
+              value={tollInput}
+              onChange={e => setTollInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && submitToll()}
+              style={{ ...inputStyle, flex: 1, padding: "10px 12px", boxSizing: "border-box", fontSize: 16, minWidth: 0 }}
+            />
+            <button onClick={submitToll} disabled={!tollDirty} style={{ ...primaryBtn, padding: "10px 16px", flexShrink: 0, opacity: tollDirty ? 1 : 0.4 }}>
+              {tollSavedTick > 0 && !tollDirty ? "✓" : "保存"}
+            </button>
+          </div>
+        </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {ATT_OPTIONS.map(it => {
             const isSel = current === it.key;
@@ -1211,7 +1299,7 @@ function AttMenuSheet({ y, m, d, current, onSelect, onClose }) {
               </button>
             );
           })}
-          <button onClick={onClose} style={{ padding: "12px 16px", border: "none", borderRadius: 10, background: "#f5f5f5", fontSize: 13, color: "#888", cursor: "pointer", marginTop: 4 }}>キャンセル</button>
+          <button onClick={onClose} style={{ padding: "12px 16px", border: "none", borderRadius: 10, background: "#f5f5f5", fontSize: 13, color: "#888", cursor: "pointer", marginTop: 4 }}>閉じる</button>
         </div>
       </div>
     </div>
