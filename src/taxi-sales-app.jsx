@@ -708,7 +708,7 @@ export default function TaxiSalesApp() {
               <div style={{ fontSize: 14, fontWeight: 700, color: paceColor }}>¥{fmt(dailyNeeded)}</div>
             </div>
             <div style={statCard}>
-              <div style={statTitle}>現在の総営収</div>
+              <div style={statTitle}>{periodAtt.work}出番の営収合計</div>
               <div style={statValue}>¥{fmt(total)}</div>
             </div>
             <div style={statCard}>
