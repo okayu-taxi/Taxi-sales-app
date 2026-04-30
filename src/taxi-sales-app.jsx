@@ -495,8 +495,10 @@ export default function TaxiSalesApp() {
 
   const onChartPointClick = useCallback((dateKey) => {
     setInputDateKey(dateKey);
+    setInputTollDateKey(dateKey);
     const existing = pData.days[dateKey];
     setInputAmount(existing?.sales != null ? String(existing.sales) : "");
+    setInputToll(existing?.toll ? String(existing.toll) : "");
     if (typeof window !== "undefined") {
       window.requestAnimationFrame(() => {
         const el = document.getElementById("sales-input-card");
